@@ -1,5 +1,6 @@
 pub mod bip39;
 pub mod shamir;
+mod utils;
 
 use ::gf256::gf;
 

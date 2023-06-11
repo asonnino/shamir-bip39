@@ -1,34 +1,12 @@
-// This module is inspired from the `shamir.rs` example of the `gf256` crate:
-// <https://github.com/asonnino/gf256/blob/master/examples/shamir.rs>
 use crate::{
     gf256,
     shamir::{ShamirMasterSecret, ShamirShare},
+    utils::{bits_to_bytes, bytes_to_bits},
 };
 use fastcrypto::hash::{HashFunction, Sha256};
-use std::{collections::HashMap, fs::read_to_string, path::Path};
+use std::{array::TryFromSliceError, collections::HashMap, fs::read_to_string, path::Path};
 
 pub const BIT39_BITS_GROUP_SIZE: usize = 11;
-
-type Entropy = [bool; 256];
-type Checksum = [bool; 8];
-
-fn bytes_to_bits(bytes: &[u8]) -> Vec<bool> {
-    bytes
-        .iter()
-        .flat_map(|b| (0..8).rev().map(move |i| (b >> i) & 1 == 1))
-        .collect()
-}
-
-fn bits_to_bytes(bits: &[bool]) -> Vec<u8> {
-    bits.chunks(8)
-        .map(|chunk| {
-            chunk
-                .iter()
-                .enumerate()
-                .fold(0, |acc, (i, &b)| acc | (b as u8) << (7 - i))
-        })
-        .collect()
-}
 
 pub struct Bip39Dictionary {
     words: [String; 2 << BIT39_BITS_GROUP_SIZE],
@@ -62,6 +40,50 @@ impl Bip39Dictionary {
     }
 }
 
+struct Entropy([bool; 256]);
+
+impl Entropy {
+    pub fn as_bits(&self) -> &[bool] {
+        &self.0
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        bits_to_bytes(&self.0)
+    }
+}
+
+impl TryFrom<&[bool]> for Entropy {
+    type Error = TryFromSliceError;
+
+    fn try_from(value: &[bool]) -> Result<Self, Self::Error> {
+        Ok(Self(value.try_into()?))
+    }
+}
+
+impl TryFrom<&[u8]> for Entropy {
+    type Error = TryFromSliceError;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        Self::try_from(bytes_to_bits(value).as_slice())
+    }
+}
+
+struct Checksum([bool; 8]);
+
+impl TryFrom<&[bool]> for Checksum {
+    type Error = TryFromSliceError;
+
+    fn try_from(value: &[bool]) -> Result<Self, Self::Error> {
+        Ok(Self(value.try_into()?))
+    }
+}
+
+impl Checksum {
+    pub fn as_bits(&self) -> &[bool] {
+        &self.0
+    }
+}
+
 pub struct Bip39Secret {
     entropy: Entropy,
     checksum: Checksum,
@@ -78,7 +100,7 @@ impl Bip39Secret {
             .try_into()
             .expect("Invalid mnemonic length");
         let bits = words
-            .iter()
+            .into_iter()
             .map(|word| dictionary.bits_from_word(word))
             .flatten()
             .collect::<Vec<_>>();
@@ -88,11 +110,13 @@ impl Bip39Secret {
         })
     }
 
-    pub fn into_mnemonic(&self, dictionary: &Bip39Dictionary) -> String {
+    pub fn to_mnemonic(&self, dictionary: &Bip39Dictionary) -> String {
         let words: Vec<_> = self
             .entropy
+            .as_bits()
             .into_iter()
-            .chain(self.checksum.into_iter())
+            .cloned()
+            .chain(self.checksum.as_bits().into_iter().cloned())
             .collect::<Vec<_>>()
             .chunks(BIT39_BITS_GROUP_SIZE)
             .map(|chunk| dictionary.word_from_bits(chunk.try_into().unwrap()))
@@ -110,7 +134,7 @@ impl Bip39Secret {
 
         let mut secrets = HashMap::new();
 
-        let entropy = bits_to_bytes(&self.entropy).into_iter().map(gf256);
+        let entropy = self.entropy.to_bytes().into_iter().map(gf256);
         for element in entropy {
             let shamir_master_secret = ShamirMasterSecret::from(element);
             let shamir_shares = shamir_master_secret.split(n, t);
@@ -123,9 +147,9 @@ impl Bip39Secret {
         secrets
             .into_iter()
             .map(|(id, secret)| {
-                let bytes = secret.into_iter().map(|s| s.into()).collect::<Vec<_>>();
-                let bits: Entropy = bytes_to_bits(&bytes).try_into().unwrap();
-                let secret = Bip39Secret::from(bits);
+                let bytes = secret.into_iter().map(|s| s.into()).collect::<Vec<u8>>();
+                let share_entropy: Entropy = bytes.as_slice().try_into().unwrap();
+                let secret = Bip39Secret::from(share_entropy);
                 Bip39Share::new(id, secret)
             })
             .collect()
@@ -135,14 +159,14 @@ impl Bip39Secret {
     pub fn reconstruct(shares: &[Bip39Share]) -> Self {
         assert!(!shares.is_empty(), "There must be at least one share");
 
-        let mut entropy = Vec::new();
+        let mut entropy: Vec<u8> = Vec::new();
 
         let length = 256 / 8;
         for i in 0..length {
             let shamir_shares = shares
                 .iter()
                 .map(|s| {
-                    let share_entropy = bits_to_bytes(&s.secret.entropy).into_iter().map(gf256);
+                    let share_entropy = s.secret.entropy.to_bytes().into_iter().map(gf256);
                     ShamirShare::new(s.id, share_entropy.collect::<Vec<_>>()[i])
                 })
                 .collect::<Vec<_>>();
@@ -150,14 +174,14 @@ impl Bip39Secret {
             entropy.push(shamir_master_secret.into());
         }
 
-        let bits: Entropy = bytes_to_bits(&entropy).try_into().unwrap();
+        let bits: Entropy = entropy.as_slice().try_into().unwrap();
         Self::from(bits)
     }
 }
 
 impl From<Entropy> for Bip39Secret {
     fn from(entropy: Entropy) -> Self {
-        let digest = Sha256::digest(bits_to_bytes(&entropy));
+        let digest = Sha256::digest(entropy.to_bytes());
         let bits = bytes_to_bits(digest.as_ref());
         let checksum = bits[..8].try_into().unwrap();
         Self { entropy, checksum }
@@ -172,5 +196,18 @@ pub struct Bip39Share {
 impl Bip39Share {
     pub fn new(id: u8, secret: Bip39Secret) -> Self {
         Self { id, secret }
+    }
+
+    pub fn from_mnemonic(
+        id: u8,
+        mnemonic: &str,
+        dictionary: &Bip39Dictionary,
+    ) -> Result<Self, std::io::Error> {
+        let secret = Bip39Secret::from_mnemonic(mnemonic, dictionary)?;
+        Ok(Self::new(id, secret))
+    }
+
+    pub fn to_mnemonic(&self, dictionary: &Bip39Dictionary) -> String {
+        self.secret.to_mnemonic(dictionary)
     }
 }
