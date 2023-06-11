@@ -3,6 +3,7 @@ use crate::{
     shamir::{ShamirMasterSecret, ShamirShare},
     utils::{bits_to_bytes, bytes_to_bits},
 };
+use eyre::{ensure, eyre, Result};
 use fastcrypto::hash::{HashFunction, Sha256};
 use std::{array::TryFromSliceError, collections::HashMap, fs::read_to_string, path::Path};
 
@@ -16,28 +17,32 @@ pub struct Bip39Dictionary {
 }
 
 impl Bip39Dictionary {
-    pub fn load<P: AsRef<Path>>(dictionary_path: P) -> Result<Self, std::io::Error> {
+    pub fn load<P: AsRef<Path>>(dictionary_path: P) -> Result<Self> {
         let words = read_to_string(dictionary_path)?
             .lines()
             .map(Into::into)
             .collect::<Vec<_>>()
             .try_into()
-            .expect("Invalid bip-39 dictionary");
+            .map_err(|_| eyre!("Invalid BIP-39 dictionary length"))?;
         Ok(Self { words })
     }
 
-    pub fn bits_from_word(&self, word: &str) -> Vec<bool> {
+    pub fn bits_from_word(&self, word: &str) -> Result<[bool; BTS]> {
         let index = self
             .words
             .iter()
             .position(|w| w == word)
-            .expect("Invalid word in mnemonic");
+            .ok_or(eyre!("Invalid BIP-39 word '{word}' in mnemonic"))?;
         let bits = bytes_to_bits(&index.to_le_bytes());
-        bits[bits.len() - BTS..].to_vec()
+        Ok(bits[bits.len() - BTS..]
+            .try_into()
+            .expect("BTS should be always smaller than `usize` bit length"))
     }
 
     pub fn word_from_bits(&self, bits: &[bool; BTS]) -> String {
-        let bytes = bits_to_bytes(bits).try_into().unwrap();
+        let bytes = bits_to_bytes(bits)
+            .try_into()
+            .expect("BTS should be always smaller than `usize` bit length");
         let index = usize::from_le_bytes(bytes);
         self.words[index].clone()
     }
@@ -93,23 +98,26 @@ pub struct Bip39Secret {
 }
 
 impl Bip39Secret {
-    pub fn from_mnemonic(
-        mnemonic: &str,
-        dictionary: &Bip39Dictionary,
-    ) -> Result<Self, std::io::Error> {
+    pub fn from_mnemonic(mnemonic: &str, dictionary: &Bip39Dictionary) -> Result<Self> {
         let words: [&str; MS] = mnemonic
             .split(' ')
             .collect::<Vec<_>>()
             .try_into()
-            .expect("Invalid mnemonic length");
+            .map_err(|_| eyre!("Invalid mnemonic length"))?;
         let bits = words
             .into_iter()
             .map(|word| dictionary.bits_from_word(word))
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
             .flatten()
             .collect::<Vec<_>>();
         Ok(Self {
-            entropy: bits[..ENT].try_into().unwrap(),
-            checksum: bits[CS..].try_into().unwrap(),
+            entropy: bits[..ENT]
+                .try_into()
+                .expect("Valid mnemonic should be longer than ENT bits"),
+            checksum: bits[ENT..]
+                .try_into()
+                .expect("Valid mnemonic should be ENT+CS bit long"),
         })
     }
 
@@ -121,15 +129,18 @@ impl Bip39Secret {
             .chain(self.checksum.as_bits().into_iter().cloned())
             .collect::<Vec<_>>()
             .chunks(BTS)
-            .map(|chunk| dictionary.word_from_bits(chunk.try_into().unwrap()))
+            .map(|chunk| {
+                let bits = chunk.try_into().expect("ENT+CS should be divisible by BTS");
+                dictionary.word_from_bits(bits)
+            })
             .collect::<Vec<_>>()
             .join(" ")
     }
 
-    pub fn split(&self, n: u8, t: u8) -> Vec<Bip39Share> {
-        assert!(n > 0, "There must be at least one share");
-        assert!(t > 0, "The threshold must be at least one");
-        assert!(
+    pub fn split(&self, n: u8, t: u8) -> Result<Vec<Bip39Share>> {
+        ensure!(n > 0, "There must be at least one share");
+        ensure!(t > 0, "The threshold must be at least one");
+        ensure!(
             t <= n,
             "The threshold cannot be higher than the number of shares"
         );
@@ -146,25 +157,26 @@ impl Bip39Secret {
             }
         }
 
-        secrets
+        Ok(secrets
             .into_iter()
             .map(|(id, secret)| {
                 let bytes = secret.into_iter().map(|s| s.into()).collect::<Vec<u8>>();
-                let share_entropy: Entropy = bytes.as_slice().try_into().unwrap();
+                let share_entropy: Entropy = bytes
+                    .as_slice()
+                    .try_into()
+                    .expect("Shamir secret sharing should preserve length");
                 let secret = Bip39Secret::from(share_entropy);
                 Bip39Share::new(id, secret)
             })
-            .collect()
+            .collect())
     }
 
     /// Reconstruct a secret
-    pub fn reconstruct(shares: &[Bip39Share]) -> Self {
-        assert!(!shares.is_empty(), "There must be at least one share");
+    pub fn reconstruct(shares: &[Bip39Share]) -> Result<Self> {
+        ensure!(!shares.is_empty(), "There must be at least one share");
 
         let mut entropy: Vec<u8> = Vec::new();
-
-        let length = ENT / 8;
-        for i in 0..length {
+        for i in 0..ENT / 8 {
             let shamir_shares = shares
                 .iter()
                 .map(|s| {
@@ -176,8 +188,11 @@ impl Bip39Secret {
             entropy.push(shamir_master_secret.into());
         }
 
-        let bits: Entropy = entropy.as_slice().try_into().unwrap();
-        Self::from(bits)
+        let bits: Entropy = entropy
+            .as_slice()
+            .try_into()
+            .expect("Shamir secret sharing should preserve length");
+        Ok(Self::from(bits))
     }
 }
 
@@ -185,7 +200,9 @@ impl From<Entropy> for Bip39Secret {
     fn from(entropy: Entropy) -> Self {
         let digest = Sha256::digest(entropy.to_bytes());
         let bits = bytes_to_bits(digest.as_ref());
-        let checksum = bits[..8].try_into().unwrap();
+        let checksum = bits[..CS]
+            .try_into()
+            .expect("SHA-256 digest should be longer than CS");
         Self { entropy, checksum }
     }
 }
@@ -200,11 +217,7 @@ impl Bip39Share {
         Self { id, secret }
     }
 
-    pub fn from_mnemonic(
-        id: u8,
-        mnemonic: &str,
-        dictionary: &Bip39Dictionary,
-    ) -> Result<Self, std::io::Error> {
+    pub fn from_mnemonic(id: u8, mnemonic: &str, dictionary: &Bip39Dictionary) -> Result<Self> {
         let secret = Bip39Secret::from_mnemonic(mnemonic, dictionary)?;
         Ok(Self::new(id, secret))
     }

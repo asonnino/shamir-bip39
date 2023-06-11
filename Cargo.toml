@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 rand = "0.8.5"
+eyre = "0.6.8"
 fastcrypto = "0.1.5"
-gf256 = { git = "https://github.com/asonnino/gf256.git", rev = "e54f759" }
+gf256 = "0.3.0"
