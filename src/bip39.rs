@@ -6,10 +6,13 @@ use crate::{
 use fastcrypto::hash::{HashFunction, Sha256};
 use std::{array::TryFromSliceError, collections::HashMap, fs::read_to_string, path::Path};
 
-pub const BIT39_BITS_GROUP_SIZE: usize = 11;
+pub const BTS: usize = 11;
+pub const MS: usize = 24;
+pub const ENT: usize = (MS * BTS) / 33;
+pub const CS: usize = ENT / 32;
 
 pub struct Bip39Dictionary {
-    words: [String; 2 << BIT39_BITS_GROUP_SIZE],
+    words: [String; 2 << BTS],
 }
 
 impl Bip39Dictionary {
@@ -30,17 +33,17 @@ impl Bip39Dictionary {
             .position(|w| w == word)
             .expect("Invalid word in mnemonic");
         let bits = bytes_to_bits(&index.to_le_bytes());
-        bits[bits.len() - BIT39_BITS_GROUP_SIZE..].to_vec()
+        bits[bits.len() - BTS..].to_vec()
     }
 
-    pub fn word_from_bits(&self, bits: &[bool; BIT39_BITS_GROUP_SIZE]) -> String {
+    pub fn word_from_bits(&self, bits: &[bool; BTS]) -> String {
         let bytes = bits_to_bytes(bits).try_into().unwrap();
         let index = usize::from_le_bytes(bytes);
         self.words[index].clone()
     }
 }
 
-struct Entropy([bool; 256]);
+struct Entropy([bool; ENT]);
 
 impl Entropy {
     pub fn as_bits(&self) -> &[bool] {
@@ -68,7 +71,7 @@ impl TryFrom<&[u8]> for Entropy {
     }
 }
 
-struct Checksum([bool; 8]);
+struct Checksum([bool; CS]);
 
 impl TryFrom<&[bool]> for Checksum {
     type Error = TryFromSliceError;
@@ -94,7 +97,7 @@ impl Bip39Secret {
         mnemonic: &str,
         dictionary: &Bip39Dictionary,
     ) -> Result<Self, std::io::Error> {
-        let words: [&str; 24] = mnemonic
+        let words: [&str; MS] = mnemonic
             .split(' ')
             .collect::<Vec<_>>()
             .try_into()
@@ -105,23 +108,22 @@ impl Bip39Secret {
             .flatten()
             .collect::<Vec<_>>();
         Ok(Self {
-            entropy: bits[..256].try_into().unwrap(),
-            checksum: bits[256..].try_into().unwrap(),
+            entropy: bits[..ENT].try_into().unwrap(),
+            checksum: bits[CS..].try_into().unwrap(),
         })
     }
 
     pub fn to_mnemonic(&self, dictionary: &Bip39Dictionary) -> String {
-        let words: Vec<_> = self
-            .entropy
+        self.entropy
             .as_bits()
             .into_iter()
             .cloned()
             .chain(self.checksum.as_bits().into_iter().cloned())
             .collect::<Vec<_>>()
-            .chunks(BIT39_BITS_GROUP_SIZE)
+            .chunks(BTS)
             .map(|chunk| dictionary.word_from_bits(chunk.try_into().unwrap()))
-            .collect();
-        words.join(" ")
+            .collect::<Vec<_>>()
+            .join(" ")
     }
 
     pub fn split(&self, n: u8, t: u8) -> Vec<Bip39Share> {
@@ -161,7 +163,7 @@ impl Bip39Secret {
 
         let mut entropy: Vec<u8> = Vec::new();
 
-        let length = 256 / 8;
+        let length = ENT / 8;
         for i in 0..length {
             let shamir_shares = shares
                 .iter()
