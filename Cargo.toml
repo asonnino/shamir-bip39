@@ -8,5 +8,7 @@ edition = "2021"
 [dependencies]
 rand = "0.8.5"
 eyre = "0.6.8"
+color-eyre = "0.6.2"
 fastcrypto = "0.1.5"
 gf256 = "0.3.0"
+clap = { version = "4.3.3", features = ["derive"] }

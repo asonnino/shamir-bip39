@@ -1,16 +1,13 @@
-// This module is inspired from the `shamir.rs` example of the `gf256` crate:
-// <https://github.com/asonnino/gf256/blob/master/examples/shamir.rs>
 use crate::gf256;
-use rand;
-use rand::Rng;
+use rand::{self, CryptoRng};
+use rand::{Rng, RngCore};
 use std::convert::TryFrom;
 
 pub struct ShamirPolynomial(Vec<gf256>);
 
 impl ShamirPolynomial {
     /// Generate a random polynomial of a given degree, fixing f(0) = secret
-    pub fn random(secret: gf256, degree: u8) -> Self {
-        let mut rng = rand::thread_rng();
+    pub fn random<R: CryptoRng + RngCore>(secret: gf256, degree: u8, rng: &mut R) -> Self {
         let mut f = vec![secret];
         for _ in 0..degree {
             f.push(gf256(rng.gen_range(1..=255)));
@@ -59,7 +56,7 @@ impl From<ShamirMasterSecret> for u8 {
 
 impl ShamirMasterSecret {
     /// Split the master secret into n shares requiring at least t shares to reconstruct
-    pub fn split(&self, n: u8, t: u8) -> Vec<ShamirShare> {
+    pub fn split<R: RngCore + CryptoRng>(&self, n: u8, t: u8, rng: &mut R) -> Vec<ShamirShare> {
         assert!(n > 0, "There must be at least one share");
         assert!(t > 0, "The threshold must be at least one");
         assert!(
@@ -67,7 +64,7 @@ impl ShamirMasterSecret {
             "The threshold cannot be higher than the number of shares"
         );
 
-        let polynomial = ShamirPolynomial::random(self.0, t - 1);
+        let polynomial = ShamirPolynomial::random(self.0, t - 1, rng);
 
         (1..=n)
             .map(|id| {

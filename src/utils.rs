@@ -15,3 +15,38 @@ pub fn bits_to_bytes(bits: &[bool]) -> Vec<u8> {
         })
         .collect()
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_bytes_to_bits() {
+        assert_eq!(
+            bytes_to_bits(&[0b0000_0000, 0b1111_1111]),
+            vec![
+                false, false, false, false, false, false, false, false, true, true, true, true,
+                true, true, true, true
+            ]
+        );
+        assert_eq!(
+            bytes_to_bits(&[0b1010_1010]),
+            vec![true, false, true, false, true, false, true, false]
+        );
+    }
+
+    #[test]
+    fn test_bits_to_bytes() {
+        assert_eq!(
+            bits_to_bytes(&[
+                false, false, false, false, false, false, false, false, true, true, true, true,
+                true, true, true, true
+            ]),
+            vec![0b0000_0000, 0b1111_1111]
+        );
+        assert_eq!(
+            bits_to_bytes(&[true, false, true, false, true, false, true, false]),
+            vec![0b1010_1010]
+        );
+    }
+}
