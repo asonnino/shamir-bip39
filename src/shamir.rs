@@ -41,7 +41,7 @@ impl ShamirShare {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq, Debug))]
 pub struct ShamirMasterSecret(gf256);
 
 impl From<gf256> for ShamirMasterSecret {

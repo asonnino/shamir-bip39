@@ -58,6 +58,7 @@ impl Bip39Dictionary {
     }
 }
 
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 struct Entropy([bool; ENT]);
 
 impl Entropy {
@@ -86,6 +87,7 @@ impl TryFrom<&[u8]> for Entropy {
     }
 }
 
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 struct Checksum([bool; CS]);
 
 impl TryFrom<&[bool]> for Checksum {
@@ -102,14 +104,19 @@ impl Checksum {
     }
 }
 
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct Bip39Secret {
     entropy: Entropy,
     checksum: Checksum,
 }
 
 impl Bip39Secret {
+    pub fn is_valid(&self) -> Result<()> {
+        todo!("Ensure the checksum is valid")
+    }
+
     pub fn from_mnemonic(mnemonic: &str, dictionary: &Bip39Dictionary) -> Result<Self> {
-        let words = mnemonic.split(' ').collect::<Vec<_>>();
+        let words = mnemonic.split_whitespace().collect::<Vec<_>>();
         let length = words.len();
 
         let bits = TryInto::<[&str; MS]>::try_into(words)
@@ -225,6 +232,7 @@ impl From<Entropy> for Bip39Secret {
     }
 }
 
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct Bip39Share {
     id: u8,
     secret: Bip39Secret,
@@ -235,24 +243,48 @@ impl Bip39Share {
         Self { id, secret }
     }
 
+    pub fn is_valid(&self) -> Result<()> {
+        self.secret.is_valid()
+    }
+
     pub fn from_mnemonic(id: u8, mnemonic: &str, dictionary: &Bip39Dictionary) -> Result<Self> {
         let secret = Bip39Secret::from_mnemonic(mnemonic, dictionary)?;
         Ok(Self::new(id, secret))
     }
 
     pub fn to_mnemonic(&self, dictionary: &Bip39Dictionary) -> String {
-        let secret = self.secret.to_mnemonic(dictionary);
-        format!("share {}: {}", self.id, secret)
+        self.secret.to_mnemonic(dictionary)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::bip39::Bip39Dictionary;
+    use rand::{rngs::StdRng, SeedableRng};
+
+    use crate::bip39::{Bip39Dictionary, Bip39Share, ENT};
+
+    use super::Bip39Secret;
+
+    fn test_dictionary() -> Bip39Dictionary {
+        Bip39Dictionary::load("assets/bip39-en.txt").unwrap()
+    }
+
+    fn test_mnemonic() -> &'static str {
+        "motion domain employ liberty priority moral \
+        boil property urge error chunk pave \
+        bullet blanket bind adapt local enroll \
+        bullet permit theory vibrant initial venue"
+    }
+
+    #[test]
+    fn load_dictionary() {
+        let dictionary = test_dictionary();
+        assert_eq!(dictionary.words.len(), 2048);
+    }
 
     #[test]
     fn bits_from_word() {
-        let dictionary = Bip39Dictionary::load("assets/bip39-en.txt").unwrap();
+        let dictionary = test_dictionary();
 
         let bits = dictionary.bits_from_word("abandon").unwrap();
         assert_eq!(bits, [false; 11]);
@@ -266,7 +298,7 @@ mod tests {
 
     #[test]
     fn word_from_bits() {
-        let dictionary = Bip39Dictionary::load("assets/bip39-en.txt").unwrap();
+        let dictionary = test_dictionary();
 
         let bits = [false; 11];
         let word = dictionary.word_from_bits(&bits);
@@ -277,5 +309,67 @@ mod tests {
         ];
         let word = dictionary.word_from_bits(&bits);
         assert_eq!(word, "hold");
+    }
+
+    #[test]
+    fn valid() {
+        let dictionary = test_dictionary();
+        let mnemonic = test_mnemonic();
+
+        let secret = Bip39Secret::from_mnemonic(mnemonic, &dictionary).unwrap();
+        assert!(secret.is_valid().is_ok());
+    }
+
+    #[test]
+    fn from_mnemonic() {
+        let dictionary = test_dictionary();
+        let mnemonic = test_mnemonic();
+
+        let secret = Bip39Secret::from_mnemonic(mnemonic, &dictionary).unwrap();
+
+        let expected = mnemonic
+            .split_whitespace()
+            .flat_map(|word| dictionary.bits_from_word(word).unwrap())
+            .collect::<Vec<_>>();
+
+        assert_eq!(secret.entropy, expected[..ENT].try_into().unwrap());
+        assert_eq!(secret.checksum, expected[ENT..].try_into().unwrap());
+    }
+
+    #[test]
+    fn to_mnemonic() {
+        let dictionary = test_dictionary();
+        let mnemonic = test_mnemonic();
+
+        let secret = Bip39Secret::from_mnemonic(mnemonic, &dictionary).unwrap();
+        assert_eq!(secret.to_mnemonic(&dictionary), mnemonic);
+    }
+
+    #[test]
+    fn valid_shares() {
+        let dictionary = test_dictionary();
+        let mnemonic = test_mnemonic();
+
+        let secret = Bip39Secret::from_mnemonic(mnemonic, &dictionary).unwrap();
+        let mut rng = StdRng::seed_from_u64(0);
+
+        let n = 3;
+        let t = 2;
+        let shares = secret.split(n, t, &mut rng).unwrap();
+
+        assert_eq!(shares.len(), n as usize);
+        for i in 0..t {
+            let share = &shares[i as usize];
+            let id = i + 1;
+
+            let share_mnemonic = share.to_mnemonic(&dictionary);
+
+            assert_eq!(share.id, id);
+            assert!(share.is_valid().is_ok());
+            assert_eq!(
+                share,
+                &Bip39Share::from_mnemonic(id, &share_mnemonic, &dictionary).unwrap()
+            );
+        }
     }
 }
