@@ -23,7 +23,7 @@ struct Args {
     #[clap(
         long,
         value_name = "FILE",
-        default_value = "assets/bip-39.txt",
+        default_value = "assets/bip39-en.txt",
         global = true
     )]
     dictionary_path: String,

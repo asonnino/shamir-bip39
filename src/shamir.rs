@@ -1,6 +1,7 @@
-use crate::gf256;
+use crate::{gf256, utils};
+
+use rand::RngCore;
 use rand::{self, CryptoRng};
-use rand::{Rng, RngCore};
 use std::convert::TryFrom;
 
 pub struct ShamirPolynomial(Vec<gf256>);
@@ -10,7 +11,7 @@ impl ShamirPolynomial {
     pub fn random<R: CryptoRng + RngCore>(secret: gf256, degree: u8, rng: &mut R) -> Self {
         let mut f = vec![secret];
         for _ in 0..degree {
-            f.push(gf256(rng.gen_range(1..=255)));
+            f.push(utils::random_gf256(rng));
         }
         Self(f)
     }
@@ -40,6 +41,7 @@ impl ShamirShare {
     }
 }
 
+#[derive(PartialEq, Eq, Debug)]
 pub struct ShamirMasterSecret(gf256);
 
 impl From<gf256> for ShamirMasterSecret {
@@ -89,5 +91,80 @@ impl ShamirMasterSecret {
         }
 
         Self(y)
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use rand::{rngs::StdRng, SeedableRng};
+
+    use crate::{gf256, shamir::ShamirMasterSecret, utils};
+
+    #[test]
+    fn random_polynomial() {
+        let mut rng = StdRng::seed_from_u64(0);
+        for i in 1..=100 {
+            let secret = utils::random_gf256(&mut rng);
+            let degree = i;
+            let f = super::ShamirPolynomial::random(secret, degree - 1, &mut rng);
+            assert_eq!(f.0.len(), degree as usize);
+            assert_eq!(f.0[0], secret);
+        }
+    }
+
+    #[test]
+    fn evaluate_polynomial() {
+        let f = super::ShamirPolynomial(vec![gf256(42), gf256(1), gf256(2)]);
+        for i in 0..u8::MAX {
+            assert_eq!(
+                f.evaluate(gf256(i)),
+                gf256(42) + gf256(1) * gf256(i) + gf256(2) * gf256(i) * gf256(i)
+            );
+        }
+    }
+
+    #[test]
+    fn reconstruct() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let secret = gf256(42);
+        let shares = ShamirMasterSecret(secret).split(5, 3, &mut rng);
+        let reconstructed = ShamirMasterSecret::reconstruct(&shares[0..3]);
+        assert_eq!(ShamirMasterSecret(secret), reconstructed);
+    }
+
+    #[test]
+    fn reconstruct_many() {
+        let mut rng = StdRng::seed_from_u64(0);
+        for n in 1..=30 {
+            for t in 1..=n {
+                let secret = utils::random_gf256(&mut rng);
+                let shares = ShamirMasterSecret(secret).split(n, t, &mut rng);
+                let reconstructed = ShamirMasterSecret::reconstruct(&shares[0..t as usize]);
+                assert_eq!(ShamirMasterSecret(secret), reconstructed);
+            }
+        }
+    }
+
+    #[test]
+    fn reconstruct_sparse() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let secret = gf256(42);
+        let mut shares = ShamirMasterSecret(secret).split(5, 3, &mut rng);
+        let share_4 = shares.pop().unwrap();
+        let _share_3 = shares.pop().unwrap();
+        let share_2 = shares.pop().unwrap();
+        let share_1 = shares.pop().unwrap();
+        let reconstructed = ShamirMasterSecret::reconstruct(&vec![share_1, share_2, share_4]);
+        assert_eq!(ShamirMasterSecret(secret), reconstructed);
+    }
+
+    #[test]
+    fn reconstruct_missing_shares() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let secret = gf256(42);
+        let shares = ShamirMasterSecret(secret).split(5, 3, &mut rng);
+        let reconstructed = ShamirMasterSecret::reconstruct(&shares[0..2]);
+        assert_ne!(ShamirMasterSecret(secret), reconstructed);
     }
 }

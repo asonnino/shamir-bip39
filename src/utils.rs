@@ -1,3 +1,12 @@
+use crate::gf256;
+
+use rand::{CryptoRng, Rng, RngCore};
+
+/// Pick a random non-zero element of GF(256)
+pub fn random_gf256<R: CryptoRng + RngCore>(rng: &mut R) -> gf256 {
+    gf256(rng.gen_range(1..=255))
+}
+
 pub fn bytes_to_bits(bytes: &[u8]) -> Vec<bool> {
     bytes
         .iter()

@@ -40,14 +40,14 @@ impl Bip39Dictionary {
             .iter()
             .position(|w| w == word)
             .ok_or(eyre!("Invalid BIP-39 word '{word}' in mnemonic"))?;
-        let bits = bytes_to_bits(&index.to_le_bytes());
+        let bits = bytes_to_bits(&index.to_be_bytes());
         Ok(bits[bits.len() - BTS..]
             .try_into()
             .expect("BTS should be always smaller than `usize` bit length"))
     }
 
     pub fn word_from_bits(&self, bits: &[bool; BTS]) -> String {
-        let mut extended = bytes_to_bits(&usize::to_le_bytes(0));
+        let mut extended = bytes_to_bits(&usize::to_be_bytes(0));
         let length = extended.len();
         extended[length - BTS..].copy_from_slice(bits);
         let bytes = bits_to_bytes(&extended)
@@ -243,5 +243,39 @@ impl Bip39Share {
     pub fn to_mnemonic(&self, dictionary: &Bip39Dictionary) -> String {
         let secret = self.secret.to_mnemonic(dictionary);
         format!("share {}: {}", self.id, secret)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::bip39::Bip39Dictionary;
+
+    #[test]
+    fn bits_from_word() {
+        let dictionary = Bip39Dictionary::load("assets/bip39-en.txt").unwrap();
+
+        let bits = dictionary.bits_from_word("abandon").unwrap();
+        assert_eq!(bits, [false; 11]);
+
+        let bits = dictionary.bits_from_word("hold").unwrap();
+        assert_eq!(
+            bits,
+            [false, true, true, false, true, true, false, false, true, false, false]
+        );
+    }
+
+    #[test]
+    fn word_from_bits() {
+        let dictionary = Bip39Dictionary::load("assets/bip39-en.txt").unwrap();
+
+        let bits = [false; 11];
+        let word = dictionary.word_from_bits(&bits);
+        assert_eq!(word, "abandon");
+
+        let bits = [
+            false, true, true, false, true, true, false, false, true, false, false,
+        ];
+        let word = dictionary.word_from_bits(&bits);
+        assert_eq!(word, "hold");
     }
 }
