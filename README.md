@@ -5,3 +5,5 @@
 [![license](https://img.shields.io/badge/license-Apache-blue.svg?style=flat-square)](LICENSE)
 
 Apply Shamir’s Secret Sharing to BIP-39 mnemonics following [EIP-3450](https://eips.ethereum.org/EIPS/eip-3450). This implementation is based on the library [gf256](https://github.com/geky/gf256) to compute operations over Galois fields.
+
+Only suitable for experimental usage.
