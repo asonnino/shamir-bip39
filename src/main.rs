@@ -1,21 +1,14 @@
-pub mod bip39;
+mod bip39;
 mod shamir;
 mod utils;
 
 use std::str::FromStr;
 
-use ::gf256::gf;
 use bip39::{Bip39Dictionary, Bip39Secret};
 use clap::{command, Parser};
 use eyre::Result;
 
 use crate::bip39::Bip39Share;
-
-// The default gf256 type available in the gf256 crate defaults to a table-based implementation
-// which risks leaking timing information due to caching. Instead we use a Barret implementation
-// which provide constant-time operations (but is slower).
-#[gf(polynomial = 0x11d, generator = 0x02, barret)]
-pub type gf256;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]

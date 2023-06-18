@@ -1,5 +1,4 @@
-use crate::gf256;
-
+use gf256::gf256;
 use rand::{CryptoRng, Rng, RngCore};
 
 /// Pick a random non-zero element of GF(256)

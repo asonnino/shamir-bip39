@@ -1,14 +1,15 @@
 use crate::{
-    gf256,
     shamir::{ShamirMasterSecret, ShamirShare},
     utils::{bits_to_bytes, bytes_to_bits},
 };
 
 use eyre::{ensure, eyre, Result};
 use fastcrypto::hash::{HashFunction, Sha256};
+use gf256::gf256;
 use rand::{CryptoRng, RngCore};
 use std::{array::TryFromSliceError, collections::HashMap, fs::read_to_string, path::Path};
 
+/// Parameters of the BIP-39 specification
 const BTS: usize = 11;
 const WORDS: usize = 2 << BTS - 1;
 const MS: usize = 24;
@@ -69,6 +70,13 @@ impl Entropy {
     pub fn to_bytes(&self) -> Vec<u8> {
         bits_to_bytes(&self.0)
     }
+
+    #[cfg(test)]
+    pub fn random<R: CryptoRng + RngCore>(rng: &mut R) -> Self {
+        use rand::Rng;
+
+        Self(std::array::from_fn(|_| rng.gen()))
+    }
 }
 
 impl TryFrom<&[bool]> for Entropy {
@@ -87,7 +95,8 @@ impl TryFrom<&[u8]> for Entropy {
     }
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
+#[derive(PartialEq, Eq)]
+#[cfg_attr(test, derive(Debug))]
 struct Checksum([bool; CS]);
 
 impl TryFrom<&[bool]> for Checksum {
@@ -95,6 +104,17 @@ impl TryFrom<&[bool]> for Checksum {
 
     fn try_from(value: &[bool]) -> Result<Self, Self::Error> {
         Ok(Self(value.try_into()?))
+    }
+}
+
+impl From<&Entropy> for Checksum {
+    fn from(entropy: &Entropy) -> Self {
+        let digest = Sha256::digest(entropy.to_bytes());
+        let bits = bytes_to_bits(digest.as_ref());
+        let checksum = bits[..CS]
+            .try_into()
+            .expect("SHA-256 digest should be longer than CS");
+        Self(checksum)
     }
 }
 
@@ -112,7 +132,9 @@ pub struct Bip39Secret {
 
 impl Bip39Secret {
     pub fn is_valid(&self) -> Result<()> {
-        todo!("Ensure the checksum is valid")
+        let checksum = Checksum::from(&self.entropy);
+        ensure!(self.checksum == checksum, "Invalid checksum");
+        Ok(())
     }
 
     pub fn from_mnemonic(mnemonic: &str, dictionary: &Bip39Dictionary) -> Result<Self> {
@@ -219,15 +241,16 @@ impl Bip39Secret {
             .expect("Shamir secret sharing should preserve length");
         Ok(Self::from(bits))
     }
+
+    #[cfg(test)]
+    pub fn random<R: CryptoRng + RngCore>(rng: &mut R) -> Self {
+        Self::from(Entropy::random(rng))
+    }
 }
 
 impl From<Entropy> for Bip39Secret {
     fn from(entropy: Entropy) -> Self {
-        let digest = Sha256::digest(entropy.to_bytes());
-        let bits = bytes_to_bits(digest.as_ref());
-        let checksum = bits[..CS]
-            .try_into()
-            .expect("SHA-256 digest should be longer than CS");
+        let checksum = Checksum::from(&entropy);
         Self { entropy, checksum }
     }
 }
@@ -259,7 +282,7 @@ impl Bip39Share {
 
 #[cfg(test)]
 mod tests {
-    use rand::{rngs::StdRng, SeedableRng};
+    use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 
     use crate::bip39::{Bip39Dictionary, Bip39Share, ENT};
 
@@ -334,6 +357,7 @@ mod tests {
 
         assert_eq!(secret.entropy, expected[..ENT].try_into().unwrap());
         assert_eq!(secret.checksum, expected[ENT..].try_into().unwrap());
+        assert!(secret.is_valid().is_ok());
     }
 
     #[test]
@@ -348,13 +372,12 @@ mod tests {
     #[test]
     fn valid_shares() {
         let dictionary = test_dictionary();
-        let mnemonic = test_mnemonic();
 
-        let secret = Bip39Secret::from_mnemonic(mnemonic, &dictionary).unwrap();
         let mut rng = StdRng::seed_from_u64(0);
+        let secret = Bip39Secret::random(&mut rng);
 
-        let n = 3;
-        let t = 2;
+        let n = 5;
+        let t = 3;
         let shares = secret.split(n, t, &mut rng).unwrap();
 
         assert_eq!(shares.len(), n as usize);
@@ -362,14 +385,84 @@ mod tests {
             let share = &shares[i as usize];
             let id = i + 1;
 
-            let share_mnemonic = share.to_mnemonic(&dictionary);
-
             assert_eq!(share.id, id);
             assert!(share.is_valid().is_ok());
+
+            let share_mnemonic = share.to_mnemonic(&dictionary);
             assert_eq!(
                 share,
                 &Bip39Share::from_mnemonic(id, &share_mnemonic, &dictionary).unwrap()
             );
+        }
+    }
+
+    #[test]
+    fn reconstruct() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let secret = Bip39Secret::random(&mut rng);
+
+        let n = 5;
+        let t = 3;
+        let shares = secret.split(n, t, &mut rng).unwrap();
+
+        let reconstructed = Bip39Secret::reconstruct(&shares[..t as usize]).unwrap();
+        assert_eq!(secret, reconstructed);
+    }
+
+    #[test]
+    fn reconstruct_sparse() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let secret = Bip39Secret::random(&mut rng);
+        let mut shares = secret.split(5, 3, &mut rng).unwrap();
+        let share_4 = shares.pop().unwrap();
+        let _share_3 = shares.pop().unwrap();
+        let share_2 = shares.pop().unwrap();
+        let share_1 = shares.pop().unwrap();
+        let reconstructed = Bip39Secret::reconstruct(&vec![share_1, share_2, share_4]).unwrap();
+        assert_eq!(secret, reconstructed);
+    }
+
+    #[test]
+    fn reconstruct_missing_shares() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let secret = Bip39Secret::random(&mut rng);
+
+        let n = 5;
+        let t = 3;
+        let shares = secret.split(n, t, &mut rng).unwrap();
+        let reconstructed = Bip39Secret::reconstruct(&shares[0..(t - 1) as usize]).unwrap();
+
+        assert!(reconstructed.is_valid().is_ok());
+        assert_ne!(secret, reconstructed);
+    }
+
+    #[test]
+    fn chaos() {
+        let dictionary = test_dictionary();
+
+        let mut rng = StdRng::seed_from_u64(0);
+        for n in 1..=15 {
+            for t in 1..=n {
+                let secret = Bip39Secret::random(&mut rng);
+
+                let mut shares = secret.split(n, t, &mut rng).unwrap();
+                shares.shuffle(&mut rng);
+
+                for share in &shares {
+                    assert!(share.is_valid().is_ok());
+                    let mnemonic = share.to_mnemonic(&dictionary);
+                    let id = share.id;
+                    let loaded = Bip39Share::from_mnemonic(id, &mnemonic, &dictionary).unwrap();
+                    assert_eq!(share, &loaded);
+                }
+
+                let reconstructed = Bip39Secret::reconstruct(&shares[0..t as usize]).unwrap();
+                assert!(reconstructed.is_valid().is_ok());
+                assert_eq!(secret, reconstructed);
+                let mnemonic = reconstructed.to_mnemonic(&dictionary);
+                let loaded = Bip39Secret::from_mnemonic(&mnemonic, &dictionary).unwrap();
+                assert_eq!(secret, loaded);
+            }
         }
     }
 }
