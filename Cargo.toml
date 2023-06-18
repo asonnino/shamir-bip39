@@ -1,7 +1,33 @@
 [package]
-name = "sss-bip39"
+name = "shamir-bip39"
 version = "0.1.0"
+authors = ["alberto@sonnino.com"]
 edition = "2021"
+rust-version = "1.69.0"
+description = "A command line tool to generate Shamir Secret Sharing shares from a BIP39 mnemonic"
+readme = "README.md"
+homepage = "https://github.com/asonnino/shamir-bip39"
+repository = "https://github.com/asonnino/shamir-bip39"
+license = "Apache-2.0"
+license-file = "LICENSE"
+keywords = [
+    "shamir", 
+    "secret-sharing",
+    "bip39", 
+    "mnemonic", 
+    "wallet", 
+    "bitcoin", 
+    "ethereum", 
+    "crypto", 
+    "cryptocurrency", 
+    "blockchain", 
+    "recovery"
+]
+categories = ["command-line-utilities", "cryptography", "cryptography::cryptocurrencies"]
+publish = false
+
+[badges]
+maintenance = { status = "experimental" }
 
 [dependencies]
 rand = "0.8.5"
