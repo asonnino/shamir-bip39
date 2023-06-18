@@ -16,6 +16,32 @@ pub trait Random {
     fn random<R: CryptoRng + RngCore>(rng: &mut R) -> Self;
 }
 
+pub struct ShamirShare<T> {
+    id: u8,
+    secret: T,
+}
+
+impl<T> ShamirShare<T> {
+    pub fn new(id: u8, secret: T) -> Self {
+        Self { id, secret }
+    }
+
+    pub fn into_inner(self) -> (u8, T) {
+        (self.id, self.secret)
+    }
+}
+
+pub trait ShamirSecretSharing {
+    fn split<R: CryptoRng + RngCore>(self, n: u8, t: u8, rng: &mut R) -> Vec<ShamirShare<Self>>
+    where
+        Self: Sized;
+
+    fn reconstruct<I>(shares: I) -> Self
+    where
+        Self: Sized,
+        I: IntoIterator<Item = ShamirShare<Self>>;
+}
+
 pub struct ShamirPolynomial<T>(Vec<T>);
 
 impl<T> ShamirPolynomial<T>
@@ -41,16 +67,6 @@ where
     }
 }
 
-pub trait ShamirSecretSharing {
-    fn split<R: CryptoRng + RngCore>(self, n: u8, t: u8, rng: &mut R) -> Vec<(u8, Self)>
-    where
-        Self: Sized;
-
-    fn reconstruct(shares: &[(u8, Self)]) -> Self
-    where
-        Self: Sized;
-}
-
 impl Zero for gf256 {
     fn zero() -> Self {
         gf256(0)
@@ -64,34 +80,33 @@ impl Random for gf256 {
 }
 
 impl ShamirSecretSharing for gf256 {
-    fn split<R: CryptoRng + RngCore>(self, n: u8, t: u8, rng: &mut R) -> Vec<(u8, Self)> {
+    fn split<R: CryptoRng + RngCore>(self, n: u8, t: u8, rng: &mut R) -> Vec<ShamirShare<Self>> {
         assert!(n > 0, "There must be at least one share");
         assert!(t > 0, "The threshold must be at least one");
-        assert!(
-            t <= n,
-            "The threshold cannot be higher than the number of shares"
-        );
+        assert!(t <= n, "The threshold must be lower than the total shares");
 
         let polynomial = ShamirPolynomial::random(self, t - 1, rng);
 
         (1..=n)
             .map(|id| {
                 let secret = polynomial.evaluate(gf256(id));
-                (id, secret)
+                ShamirShare::new(id, secret)
             })
             .collect()
     }
 
-    fn reconstruct(shares: &[(u8, Self)]) -> Self
+    fn reconstruct<I>(shares: I) -> Self
     where
-        Self: Sized,
+        I: IntoIterator<Item = ShamirShare<Self>>,
     {
         let mut y = gf256(0);
-        for (i, (x0, y0)) in shares.iter().enumerate() {
+        for (i, share) in shares.into_iter().enumerate() {
             let mut li = gf256(1);
-            for (j, (x1, _y1)) in shares.iter().enumerate() {
+            let (x0, y0) = share.into_inner();
+            for (j, share) in shares.into_iter().enumerate() {
+                let (x1, _y1) = share.into_inner();
                 if i != j {
-                    li *= gf256(*x1) / (gf256(*x0) + gf256(*x1));
+                    li *= gf256(x1) / (gf256(x0) + gf256(x1));
                 }
             }
             y += li * y0;
@@ -106,19 +121,13 @@ impl<T, const N: usize> ShamirSecretSharing for FieldArray<T, N>
 where
     T: ShamirSecretSharing + Clone + Debug,
 {
-    fn split<R: CryptoRng + RngCore>(self, n: u8, t: u8, rng: &mut R) -> Vec<(u8, Self)> {
-        assert!(n > 0, "There must be at least one share");
-        assert!(t > 0, "The threshold must be at least one");
-        assert!(
-            t <= n,
-            "The threshold cannot be higher than the number of shares"
-        );
-
+    fn split<R: CryptoRng + RngCore>(self, n: u8, t: u8, rng: &mut R) -> Vec<ShamirShare<Self>> {
         let mut secrets = HashMap::new();
 
         for element in self.0 {
-            for (id, share) in element.split(n, t, rng) {
-                secrets.entry(id).or_insert_with(Vec::new).push(share);
+            for share in element.split(n, t, rng) {
+                let (id, secret) = share.into_inner();
+                secrets.entry(id).or_insert_with(Vec::new).push(secret);
             }
         }
 
@@ -128,21 +137,24 @@ where
                 let share = share
                     .try_into()
                     .expect("Shamir secret sharing should preserve length");
-                (id, Self(share))
+                ShamirShare::new(id, Self(share))
             })
             .collect::<Vec<_>>();
 
-        shares.sort_by(|a, b| a.0.cmp(&b.0));
+        shares.sort_by(|a, b| a.id.cmp(&b.id));
         shares
     }
 
-    fn reconstruct(shares: &[(u8, Self)]) -> Self {
+    fn reconstruct<I: IntoIterator<Item = ShamirShare<Self>>>(shares: I) -> Self {
         Self(array::from_fn(|i| {
             let element_shares = shares
-                .iter()
-                .map(|(id, secret)| (*id, secret.0[i].clone()))
+                .into_iter()
+                .map(|share| {
+                    let (id, secret) = share.into_inner();
+                    ShamirShare::new(id, secret.0[i].clone())
+                })
                 .collect::<Vec<_>>();
-            T::reconstruct(&element_shares)
+            T::reconstruct(element_shares)
         }))
     }
 }

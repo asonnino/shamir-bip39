@@ -1,5 +1,5 @@
 use crate::{
-    traits::{FieldArray, ShamirSecretSharing},
+    traits::{FieldArray, ShamirSecretSharing, ShamirShare},
     utils::{bits_to_bytes, bytes_to_bits},
 };
 
@@ -136,6 +136,8 @@ impl Checksum {
     }
 }
 
+pub type Bip39Share = ShamirShare<Bip39Secret>;
+
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct Bip39Secret {
     entropy: Entropy,
@@ -143,36 +145,29 @@ pub struct Bip39Secret {
 }
 
 impl ShamirSecretSharing for Bip39Secret {
-    fn split<R: CryptoRng + RngCore>(self, n: u8, t: u8, rng: &mut R) -> Vec<(u8, Self)> {
-        assert!(n > 0, "There must be at least one share");
-        assert!(t > 0, "The threshold must be at least one");
-        assert!(
-            t <= n,
-            "The threshold cannot be higher than the number of shares"
-        );
-
+    fn split<R: CryptoRng + RngCore>(self, n: u8, t: u8, rng: &mut R) -> Vec<Bip39Share> {
         FieldArray::<gf256, ENT_BYTES>::from(self.entropy)
             .split(n, t, rng)
             .into_iter()
-            .map(|(i, s)| {
-                let entropy = Entropy::from(s);
-                (i, Self::from(entropy))
+            .map(|share| {
+                let (id, secret) = share.into_inner();
+                let entropy = Entropy::from(secret);
+                Bip39Share::new(id, Self::from(entropy))
             })
             .collect()
     }
 
-    fn reconstruct(shares: &[(u8, Self)]) -> Self
-    where
-        Self: Sized,
-    {
-        assert!(!shares.is_empty(), "There must be at least one share");
-
+    fn reconstruct<I: IntoIterator<Item = Bip39Share>>(shares: I) -> Self {
         let array_shares: Vec<_> = shares
             .into_iter()
-            .map(|(id, s)| (*id, From::from(s.entropy)))
+            .map(|share| {
+                let (id, secret) = share.into_inner();
+                let array = From::from(secret.entropy);
+                ShamirShare::new(id, array)
+            })
             .collect();
 
-        let array = FieldArray::<gf256, ENT_BYTES>::reconstruct(&array_shares);
+        let array = FieldArray::<gf256, ENT_BYTES>::reconstruct(array_shares);
         let entropy = Entropy::from(array);
         Self::from(entropy)
     }
@@ -237,30 +232,30 @@ impl From<Entropy> for Bip39Secret {
     }
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
-pub struct Bip39Share {
-    id: u8,
-    secret: Bip39Secret,
-}
+// #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
+// pub struct Bip39Share {
+//     id: u8,
+//     secret: Bip39Secret,
+// }
 
-impl Bip39Share {
-    pub fn new(id: u8, secret: Bip39Secret) -> Self {
-        Self { id, secret }
-    }
+// impl Bip39Share {
+//     pub fn new(id: u8, secret: Bip39Secret) -> Self {
+//         Self { id, secret }
+//     }
 
-    pub fn is_valid(&self) -> Result<()> {
-        self.secret.is_valid()
-    }
+//     pub fn is_valid(&self) -> Result<()> {
+//         self.secret.is_valid()
+//     }
 
-    pub fn from_mnemonic(id: u8, mnemonic: &str, dictionary: &Bip39Dictionary) -> Result<Self> {
-        let secret = Bip39Secret::from_mnemonic(mnemonic, dictionary)?;
-        Ok(Self::new(id, secret))
-    }
+//     pub fn from_mnemonic(id: u8, mnemonic: &str, dictionary: &Bip39Dictionary) -> Result<Self> {
+//         let secret = Bip39Secret::from_mnemonic(mnemonic, dictionary)?;
+//         Ok(Self::new(id, secret))
+//     }
 
-    pub fn to_mnemonic(&self, dictionary: &Bip39Dictionary) -> String {
-        self.secret.to_mnemonic(dictionary)
-    }
-}
+//     pub fn to_mnemonic(&self, dictionary: &Bip39Dictionary) -> String {
+//         self.secret.to_mnemonic(dictionary)
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
