@@ -1,15 +1,14 @@
 /// Convert an iterator of bytes into a vector of bits
-pub fn bytes_to_bits(bytes: impl Iterator<Item = u8>) -> Vec<bool> {
+pub fn bytes_to_bits(bytes: &[u8]) -> Vec<bool> {
     bytes
+        .iter()
         .flat_map(|b| (0..8).rev().map(move |i| (b >> i) & 1 == 1))
         .collect()
 }
 
 /// Convert an iterator of bits into a vector of bytes
-pub fn bits_to_bytes(bits: impl Iterator<Item = bool>) -> Vec<u8> {
-    bits.collect::<Vec<_>>()
-        .as_slice()
-        .chunks(8)
+pub fn bits_to_bytes(bits: &[bool]) -> Vec<u8> {
+    bits.chunks(8)
         .map(|chunk| {
             chunk
                 .iter()
