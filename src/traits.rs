@@ -26,8 +26,16 @@ impl<T> ShamirShare<T> {
         Self { id, secret }
     }
 
+    pub fn secret(&self) -> &T {
+        &self.secret
+    }
+
     pub fn into_inner(self) -> (u8, T) {
         (self.id, self.secret)
+    }
+
+    pub fn as_coordinates(&self) -> (&u8, &T) {
+        (&self.id, &self.secret)
     }
 }
 
@@ -36,10 +44,9 @@ pub trait ShamirSecretSharing {
     where
         Self: Sized;
 
-    fn reconstruct<I>(shares: I) -> Self
+    fn reconstruct(shares: &[ShamirShare<Self>]) -> Self
     where
-        Self: Sized,
-        I: IntoIterator<Item = ShamirShare<Self>>;
+        Self: Sized;
 }
 
 pub struct ShamirPolynomial<T>(Vec<T>);
@@ -95,18 +102,15 @@ impl ShamirSecretSharing for gf256 {
             .collect()
     }
 
-    fn reconstruct<I>(shares: I) -> Self
-    where
-        I: IntoIterator<Item = ShamirShare<Self>>,
-    {
+    fn reconstruct(shares: &[ShamirShare<Self>]) -> Self {
         let mut y = gf256(0);
-        for (i, share) in shares.into_iter().enumerate() {
+        for (i, share) in shares.iter().enumerate() {
             let mut li = gf256(1);
-            let (x0, y0) = share.into_inner();
-            for (j, share) in shares.into_iter().enumerate() {
-                let (x1, _y1) = share.into_inner();
+            let (x0, y0) = share.as_coordinates();
+            for (j, share) in shares.iter().enumerate() {
+                let (x1, _y1) = share.as_coordinates();
                 if i != j {
-                    li *= gf256(x1) / (gf256(x0) + gf256(x1));
+                    li *= gf256(*x1) / (gf256(*x0) + gf256(*x1));
                 }
             }
             y += li * y0;
@@ -145,16 +149,16 @@ where
         shares
     }
 
-    fn reconstruct<I: IntoIterator<Item = ShamirShare<Self>>>(shares: I) -> Self {
+    fn reconstruct(shares: &[ShamirShare<Self>]) -> Self {
         Self(array::from_fn(|i| {
             let element_shares = shares
-                .into_iter()
+                .iter()
                 .map(|share| {
-                    let (id, secret) = share.into_inner();
-                    ShamirShare::new(id, secret.0[i].clone())
+                    let (id, secret) = share.as_coordinates();
+                    ShamirShare::new(*id, secret.0[i].clone())
                 })
                 .collect::<Vec<_>>();
-            T::reconstruct(element_shares)
+            T::reconstruct(&element_shares)
         }))
     }
 }

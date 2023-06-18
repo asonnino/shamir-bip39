@@ -42,17 +42,17 @@ impl Bip39Dictionary {
             .iter()
             .position(|w| w == word)
             .ok_or(eyre!("Invalid BIP-39 word '{word}' in mnemonic"))?;
-        let bits = bytes_to_bits(&index.to_be_bytes());
+        let bits = bytes_to_bits(index.to_be_bytes().into_iter());
         Ok(bits[bits.len() - BTS..]
             .try_into()
             .expect("BTS should be always smaller than `usize` bit length"))
     }
 
     pub fn word_from_bits(&self, bits: &[bool; BTS]) -> String {
-        let mut extended = bytes_to_bits(&usize::to_be_bytes(0));
+        let mut extended = bytes_to_bits(usize::to_be_bytes(0).into_iter());
         let length = extended.len();
         extended[length - BTS..].copy_from_slice(bits);
-        let bytes = bits_to_bytes(&extended)
+        let bytes = bits_to_bytes(extended.into_iter())
             .try_into()
             .expect("BTS should be always smaller than `usize` bit length");
         let index = usize::from_be_bytes(bytes);
@@ -69,7 +69,7 @@ impl Entropy {
     }
 
     pub fn to_bytes(&self) -> [u8; ENT_BYTES] {
-        bits_to_bytes(&self.0).try_into().unwrap()
+        bits_to_bytes(self.0.into_iter()).try_into().unwrap()
     }
 
     #[cfg(test)]
@@ -93,16 +93,16 @@ where
     u8: From<T>,
 {
     fn from(value: FieldArray<T, ENT_BYTES>) -> Self {
-        let bytes = value.into_iter().map(From::from).collect::<Vec<_>>();
-        bytes_to_bits(&bytes).as_slice().try_into().unwrap()
+        let bytes = value.into_iter().map(From::from);
+        bytes_to_bits(bytes).as_slice().try_into().unwrap()
     }
 }
 
-impl<T> From<Entropy> for FieldArray<T, ENT_BYTES>
+impl<T> From<&Entropy> for FieldArray<T, ENT_BYTES>
 where
     T: From<u8> + Debug,
 {
-    fn from(value: Entropy) -> Self {
+    fn from(value: &Entropy) -> Self {
         value.to_bytes().map(From::from).into()
     }
 }
@@ -122,7 +122,7 @@ impl TryFrom<&[bool]> for Checksum {
 impl From<&Entropy> for Checksum {
     fn from(entropy: &Entropy) -> Self {
         let digest = Sha256::digest(entropy.to_bytes());
-        let bits = bytes_to_bits(digest.as_ref());
+        let bits = bytes_to_bits(digest.to_vec().into_iter());
         let checksum = bits[..CS]
             .try_into()
             .expect("SHA-256 digest should be longer than CS");
@@ -136,8 +136,6 @@ impl Checksum {
     }
 }
 
-pub type Bip39Share = ShamirShare<Bip39Secret>;
-
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct Bip39Secret {
     entropy: Entropy,
@@ -146,7 +144,7 @@ pub struct Bip39Secret {
 
 impl ShamirSecretSharing for Bip39Secret {
     fn split<R: CryptoRng + RngCore>(self, n: u8, t: u8, rng: &mut R) -> Vec<Bip39Share> {
-        FieldArray::<gf256, ENT_BYTES>::from(self.entropy)
+        FieldArray::<gf256, ENT_BYTES>::from(&self.entropy)
             .split(n, t, rng)
             .into_iter()
             .map(|share| {
@@ -157,17 +155,17 @@ impl ShamirSecretSharing for Bip39Secret {
             .collect()
     }
 
-    fn reconstruct<I: IntoIterator<Item = Bip39Share>>(shares: I) -> Self {
-        let array_shares: Vec<_> = shares
+    fn reconstruct(shares: &[Bip39Share]) -> Self {
+        let array_shares = shares
             .into_iter()
             .map(|share| {
-                let (id, secret) = share.into_inner();
-                let array = From::from(secret.entropy);
-                ShamirShare::new(id, array)
+                let (id, secret) = share.as_coordinates();
+                let array = From::from(&secret.entropy);
+                ShamirShare::new(*id, array)
             })
-            .collect();
+            .collect::<Vec<_>>();
 
-        let array = FieldArray::<gf256, ENT_BYTES>::reconstruct(array_shares);
+        let array = FieldArray::<gf256, ENT_BYTES>::reconstruct(&array_shares);
         let entropy = Entropy::from(array);
         Self::from(entropy)
     }
@@ -232,30 +230,28 @@ impl From<Entropy> for Bip39Secret {
     }
 }
 
+pub type Bip39Share = ShamirShare<Bip39Secret>;
+
 // #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 // pub struct Bip39Share {
 //     id: u8,
 //     secret: Bip39Secret,
 // }
 
-// impl Bip39Share {
-//     pub fn new(id: u8, secret: Bip39Secret) -> Self {
-//         Self { id, secret }
-//     }
+impl Bip39Share {
+    pub fn is_valid(&self) -> Result<()> {
+        self.secret().is_valid()
+    }
 
-//     pub fn is_valid(&self) -> Result<()> {
-//         self.secret.is_valid()
-//     }
+    pub fn from_mnemonic(id: u8, mnemonic: &str, dictionary: &Bip39Dictionary) -> Result<Self> {
+        let secret = Bip39Secret::from_mnemonic(mnemonic, dictionary)?;
+        Ok(Self::new(id, secret))
+    }
 
-//     pub fn from_mnemonic(id: u8, mnemonic: &str, dictionary: &Bip39Dictionary) -> Result<Self> {
-//         let secret = Bip39Secret::from_mnemonic(mnemonic, dictionary)?;
-//         Ok(Self::new(id, secret))
-//     }
-
-//     pub fn to_mnemonic(&self, dictionary: &Bip39Dictionary) -> String {
-//         self.secret.to_mnemonic(dictionary)
-//     }
-// }
+    pub fn to_mnemonic(&self, dictionary: &Bip39Dictionary) -> String {
+        self.secret().to_mnemonic(dictionary)
+    }
+}
 
 #[cfg(test)]
 mod tests {

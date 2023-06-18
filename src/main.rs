@@ -1,15 +1,12 @@
 mod bip39;
-mod shamir;
 pub mod traits;
 mod utils;
 
 use std::str::FromStr;
 
-use bip39::{Bip39Dictionary, Bip39Secret};
+use bip39::Bip39Dictionary;
 use clap::{command, Parser};
 use eyre::Result;
-
-use crate::bip39::Bip39Share;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -68,23 +65,23 @@ fn main() -> Result<()> {
 
     let dictionary = Bip39Dictionary::load(&args.dictionary_path)?;
 
-    match args.operation {
-        Operation::Split { secret, n, t } => {
-            let secret = Bip39Secret::from_mnemonic(&secret, &dictionary)?;
-            let shares = secret.split(n, t, &mut rand::thread_rng())?;
-            for share in shares {
-                println!("{}", share.to_mnemonic(&dictionary));
-            }
-        }
-        Operation::Reconstruct { shares } => {
-            let shares = shares
-                .into_iter()
-                .map(|share| Bip39Share::from_mnemonic(share.index, &share.secret, &dictionary))
-                .collect::<Result<Vec<_>>>()?;
-            let secret = Bip39Secret::reconstruct(&shares)?;
-            println!("{}", secret.to_mnemonic(&dictionary));
-        }
-    }
+    // match args.operation {
+    //     Operation::Split { secret, n, t } => {
+    //         let secret = Bip39Secret::from_mnemonic(&secret, &dictionary)?;
+    //         let shares = secret.split(n, t, &mut rand::thread_rng())?;
+    //         for share in shares {
+    //             println!("{}", share.to_mnemonic(&dictionary));
+    //         }
+    //     }
+    //     Operation::Reconstruct { shares } => {
+    //         let shares = shares
+    //             .into_iter()
+    //             .map(|share| Bip39Share::from_mnemonic(share.index, &share.secret, &dictionary))
+    //             .collect::<Result<Vec<_>>>()?;
+    //         let secret = Bip39Secret::reconstruct(&shares)?;
+    //         println!("{}", secret.to_mnemonic(&dictionary));
+    //     }
+    // }
 
     Ok(())
 }
