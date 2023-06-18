@@ -1,5 +1,6 @@
 mod bip39;
 mod shamir;
+pub mod traits;
 mod utils;
 
 use std::str::FromStr;
