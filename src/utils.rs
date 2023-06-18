@@ -1,4 +1,4 @@
-/// Convert an iterator of bytes into a vector of bits
+/// Convert an iterator of bytes into a vector of bits.
 pub fn bytes_to_bits(bytes: &[u8]) -> Vec<bool> {
     bytes
         .iter()
@@ -6,7 +6,7 @@ pub fn bytes_to_bits(bytes: &[u8]) -> Vec<bool> {
         .collect()
 }
 
-/// Convert an iterator of bits into a vector of bytes
+/// Convert an iterator of bits into a vector of bytes.
 pub fn bits_to_bytes(bits: &[bool]) -> Vec<u8> {
     bits.chunks(8)
         .map(|chunk| {

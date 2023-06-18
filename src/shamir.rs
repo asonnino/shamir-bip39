@@ -15,52 +15,65 @@ pub trait Random {
     fn random<R: CryptoRng + RngCore>(rng: &mut R) -> Self;
 }
 
+/// A share of a secret.
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct ShamirShare<T> {
+    /// The share's ID (the x-coordinate).
     id: u8,
+    /// The share's secret (the y-coordinate).
     secret: T,
 }
 
 impl<T> ShamirShare<T> {
+    /// Create a new share with the given ID and secret.
     pub fn new(id: u8, secret: T) -> Self {
         Self { id, secret }
     }
 
+    /// Get the share's ID.
     #[cfg(test)]
     pub fn id(&self) -> &u8 {
         &self.id
     }
 
+    /// Get the share's secret.
     pub fn secret(&self) -> &T {
         &self.secret
     }
 
+    /// Convert the share into a tuple of ID and secret.
     pub fn into_inner(self) -> (u8, T) {
         (self.id, self.secret)
     }
 
+    /// Get the share's ID and secret.
     pub fn as_coordinates(&self) -> (&u8, &T) {
         (&self.id, &self.secret)
     }
 }
 
+/// A secret sharing scheme based on Shamir's secret sharing.
 pub trait ShamirSecretSharing {
+    /// Split a secret into `n` shares, of which any `t` can be used to reconstruct the secret.
+    /// Panic if `n` or `t` are zero, or if `t` is greater than `n`.
     fn split<R: CryptoRng + RngCore>(self, n: u8, t: u8, rng: &mut R) -> Vec<ShamirShare<Self>>
     where
         Self: Sized;
 
+    /// Reconstruct a secret from `t` shares.
     fn reconstruct(shares: &[ShamirShare<Self>]) -> Self
     where
         Self: Sized;
 }
 
+/// A polynomial with random coefficients and hiding a secret at its origin.
 pub struct ShamirPolynomial<T>(Vec<T>);
 
 impl<T> ShamirPolynomial<T>
 where
     T: Mul<T, Output = T> + Add<T, Output = T> + Clone + Zero + Random,
 {
-    /// Generate a random polynomial of a given degree, fixing f(0) = secret
+    /// Generate a random polynomial of a given degree, fixing f(0) = secret.
     pub fn random<R: CryptoRng + RngCore>(secret: T, degree: u8, rng: &mut R) -> Self {
         let mut f = vec![secret];
         for _ in 0..degree {
@@ -69,7 +82,7 @@ where
         Self(f)
     }
 
-    /// Evaluate a polynomial at x using Horner's method
+    /// Evaluate a polynomial at x using Horner's method.
     pub fn evaluate(&self, x: T) -> T {
         let mut y = T::zero();
         for c in self.0.iter().cloned().rev() {
@@ -79,6 +92,7 @@ where
     }
 }
 
+/// An array of field elements that can be used in Shamir's secret sharing scheme.
 #[cfg_attr(test, derive(Clone, Debug, PartialEq, Eq))]
 pub struct FieldArray<T, const N: usize>([T; N]);
 

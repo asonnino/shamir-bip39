@@ -9,7 +9,7 @@ use gf256::gf256;
 use rand::{CryptoRng, RngCore};
 use std::{array::TryFromSliceError, fmt::Debug, fs::read_to_string, path::Path};
 
-/// Parameters of the BIP-39 specification (24 words variant).
+/// Parameters of the bip-39 specification (24 words variant).
 const DICTIONARY_INDICES_BITS: usize = 11;
 const MNEMONIC_WORDS: usize = 24;
 const DICTIONARY_WORDS: usize = 2 << DICTIONARY_INDICES_BITS - 1;
@@ -17,11 +17,13 @@ const CHECKSUM_BITS: usize = (MNEMONIC_WORDS * DICTIONARY_INDICES_BITS) / 33;
 const ENTROPY_BITS: usize = CHECKSUM_BITS * 32;
 const ENTROPY_BYTES: usize = ENTROPY_BITS / 8;
 
+/// The bip-39 dictionary.
 pub struct Bip39Dictionary {
     words: [String; DICTIONARY_WORDS],
 }
 
 impl Bip39Dictionary {
+    /// Load the bip-39 dictionary from a file.
     pub fn load<P: AsRef<Path>>(dictionary_path: P) -> Result<Self> {
         let words = read_to_string(dictionary_path)?
             .lines()
@@ -36,6 +38,7 @@ impl Bip39Dictionary {
         })
     }
 
+    /// Get the index of a word in the dictionary (as bits).
     pub fn bits_from_word(&self, word: &str) -> Result<[bool; DICTIONARY_INDICES_BITS]> {
         let index = self
             .words
@@ -48,6 +51,7 @@ impl Bip39Dictionary {
             .expect("BTS should be always smaller than `usize` bit length"))
     }
 
+    /// Get the word at a given index in the dictionary.
     pub fn word_from_bits(&self, bits: &[bool; DICTIONARY_INDICES_BITS]) -> String {
         let mut extended = bytes_to_bits(&usize::to_be_bytes(0));
         let length = extended.len();
@@ -60,6 +64,7 @@ impl Bip39Dictionary {
     }
 }
 
+/// The entropy of a bip-39 secret.
 #[cfg_attr(test, derive(Debug, PartialEq, Eq, Clone))]
 struct Entropy([bool; ENTROPY_BITS]);
 
@@ -107,6 +112,7 @@ where
     }
 }
 
+/// The checksum of a bip-39 secret.
 #[derive(PartialEq, Eq)]
 #[cfg_attr(test, derive(Clone, Debug))]
 struct Checksum([bool; CHECKSUM_BITS]);
@@ -136,9 +142,12 @@ impl Checksum {
     }
 }
 
+/// A bip-39 secret.
 #[cfg_attr(test, derive(Debug, PartialEq, Eq, Clone))]
 pub struct Bip39Secret {
+    /// The entropy of the secret.
     entropy: Entropy,
+    /// The checksum of the secret.
     checksum: Checksum,
 }
 
@@ -172,12 +181,14 @@ impl ShamirSecretSharing for Bip39Secret {
 }
 
 impl Bip39Secret {
+    /// Ensure the checksum of the secret is valid.
     pub fn is_valid(&self) -> Result<()> {
         let checksum = Checksum::from(&self.entropy);
         ensure!(self.checksum == checksum, "Invalid checksum");
         Ok(())
     }
 
+    /// Create a new secret from a given mnemonic.
     pub fn from_mnemonic(mnemonic: &str, dictionary: &Bip39Dictionary) -> Result<Self> {
         let words = mnemonic.split_whitespace().collect::<Vec<_>>();
         let length = words.len();
@@ -201,6 +212,7 @@ impl Bip39Secret {
         })
     }
 
+    /// Generate a mnemonic from the secret.
     pub fn to_mnemonic(&self, dictionary: &Bip39Dictionary) -> String {
         self.entropy
             .as_bits()
