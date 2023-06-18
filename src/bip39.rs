@@ -12,7 +12,7 @@ use std::{array::TryFromSliceError, fmt::Debug, fs::read_to_string, path::Path};
 /// Parameters of the bip-39 specification (24 words variant).
 const DICTIONARY_INDICES_BITS: usize = 11;
 const MNEMONIC_WORDS: usize = 24;
-const DICTIONARY_WORDS: usize = 2 << DICTIONARY_INDICES_BITS - 1;
+const DICTIONARY_WORDS: usize = 2 << (DICTIONARY_INDICES_BITS - 1);
 const CHECKSUM_BITS: usize = (MNEMONIC_WORDS * DICTIONARY_INDICES_BITS) / 33;
 const ENTROPY_BITS: usize = CHECKSUM_BITS * 32;
 const ENTROPY_BYTES: usize = ENTROPY_BITS / 8;
@@ -166,7 +166,7 @@ impl ShamirSecretSharing for Bip39Secret {
 
     fn reconstruct(shares: &[Bip39Share]) -> Self {
         let array_shares = shares
-            .into_iter()
+            .iter()
             .map(|share| {
                 let (id, secret) = share.as_coordinates();
                 let array = From::from(&secret.entropy);
@@ -216,9 +216,9 @@ impl Bip39Secret {
     pub fn to_mnemonic(&self, dictionary: &Bip39Dictionary) -> String {
         self.entropy
             .as_bits()
-            .into_iter()
+            .iter()
             .cloned()
-            .chain(self.checksum.as_bits().into_iter().cloned())
+            .chain(self.checksum.as_bits().iter().cloned())
             .collect::<Vec<_>>()
             .chunks(DICTIONARY_INDICES_BITS)
             .map(|chunk| {

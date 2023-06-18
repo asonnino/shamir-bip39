@@ -62,7 +62,7 @@ impl FromStr for ShareString {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut parts = s.split(' ');
         let index = parts.next().unwrap().parse()?;
-        let secret = parts.into_iter().collect::<Vec<_>>().join(" ");
+        let secret = parts.collect::<Vec<_>>().join(" ");
         Ok(Self { index, secret })
     }
 }
