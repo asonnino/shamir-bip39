@@ -99,7 +99,7 @@ where
     u8: From<T>,
 {
     fn from(value: FieldArray<T, ENTROPY_BYTES>) -> Self {
-        let bytes = value.into_iter().map(From::from).collect::<Vec<_>>();
+        let bytes = value.into_iter().map(u8::from).collect::<Vec<_>>();
         bytes_to_bits(&bytes).as_slice().try_into().unwrap()
     }
 }
@@ -109,7 +109,7 @@ where
     T: From<u8> + Debug,
 {
     fn from(value: &Entropy) -> Self {
-        value.to_bytes().map(From::from).into()
+        value.to_bytes().map(T::from).into()
     }
 }
 
@@ -171,7 +171,7 @@ impl ShamirSecretSharing for Bip39Secret {
             .iter()
             .map(|share| {
                 let (id, secret) = share.as_ref().as_coordinates();
-                let array = From::from(&secret.entropy);
+                let array = FieldArray::from(&secret.entropy);
                 ShamirShare::new(*id, array)
             })
             .collect::<Vec<_>>();
