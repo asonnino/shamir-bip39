@@ -7,6 +7,7 @@ use std::str::FromStr;
 
 use bip39::{Bip39Dictionary, Bip39Secret};
 use clap::{command, Parser};
+use color_eyre::owo_colors::OwoColorize;
 use eyre::{ensure, Result};
 use shamir::ShamirSecretSharing;
 
@@ -87,8 +88,15 @@ fn main() -> Result<()> {
             // Split the secret into the specified number of shares.
             let shares = secret.split(n, t, &mut rand::thread_rng());
             // Print the shares to stdout.
-            for share in shares {
-                println!("{}", share.to_mnemonic(&dictionary));
+            for (i, share) in shares.iter().enumerate() {
+                let heading = format!("Share {}/{}", i + 1, n);
+                let mnemonic = share.to_mnemonic(&dictionary);
+
+                println!("\n{}", heading.bold().green(),);
+                for (j, word) in mnemonic.split_whitespace().enumerate() {
+                    println!("{:2} {}", (j + 1).to_string().bold(), word);
+                }
+                println!();
             }
         }
         Operation::Reconstruct { shares } => {
