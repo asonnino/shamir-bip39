@@ -52,17 +52,24 @@ impl<T> ShamirShare<T> {
     }
 }
 
+impl<T> AsRef<ShamirShare<T>> for ShamirShare<T> {
+    fn as_ref(&self) -> &ShamirShare<T> {
+        self
+    }
+}
+
 /// A secret sharing scheme based on Shamir's secret sharing.
 pub trait ShamirSecretSharing {
     /// Split a secret into `n` shares, of which any `t` can be used to reconstruct the secret.
     /// Panic if `n` or `t` are zero, or if `t` is greater than `n`.
-    fn split<R: CryptoRng + RngCore>(self, n: u8, t: u8, rng: &mut R) -> Vec<ShamirShare<Self>>
+    fn split<R: CryptoRng + RngCore>(&self, n: u8, t: u8, rng: &mut R) -> Vec<ShamirShare<Self>>
     where
         Self: Sized;
 
     /// Reconstruct a secret from `t` shares.
-    fn reconstruct(shares: &[ShamirShare<Self>]) -> Self
+    fn reconstruct<S>(shares: &[S]) -> Self
     where
+        S: AsRef<ShamirShare<Self>>,
         Self: Sized;
 }
 
@@ -100,10 +107,10 @@ impl<T, const N: usize> ShamirSecretSharing for FieldArray<T, N>
 where
     T: ShamirSecretSharing + Clone + Debug,
 {
-    fn split<R: CryptoRng + RngCore>(self, n: u8, t: u8, rng: &mut R) -> Vec<ShamirShare<Self>> {
+    fn split<R: CryptoRng + RngCore>(&self, n: u8, t: u8, rng: &mut R) -> Vec<ShamirShare<Self>> {
         let mut secrets = HashMap::new();
 
-        for element in self.0 {
+        for element in &self.0 {
             for share in element.split(n, t, rng) {
                 let (id, secret) = share.into_inner();
                 secrets.entry(id).or_insert_with(Vec::new).push(secret);
@@ -124,12 +131,12 @@ where
         shares
     }
 
-    fn reconstruct(shares: &[ShamirShare<Self>]) -> Self {
+    fn reconstruct<S: AsRef<ShamirShare<Self>>>(shares: &[S]) -> Self {
         Self(array::from_fn(|i| {
             let element_shares = shares
                 .iter()
                 .map(|share| {
-                    let (id, secret) = share.as_coordinates();
+                    let (id, secret) = share.as_ref().as_coordinates();
                     ShamirShare::new(*id, secret.0[i].clone())
                 })
                 .collect::<Vec<_>>();

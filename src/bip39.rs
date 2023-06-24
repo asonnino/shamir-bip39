@@ -65,7 +65,8 @@ impl Bip39Dictionary {
 }
 
 /// The entropy of a bip-39 secret.
-#[cfg_attr(test, derive(Debug, PartialEq, Eq, Clone))]
+#[derive(PartialEq, Eq)]
+#[cfg_attr(test, derive(Debug, Clone))]
 struct Entropy([bool; ENTROPY_BITS]);
 
 impl Entropy {
@@ -143,7 +144,8 @@ impl Checksum {
 }
 
 /// A bip-39 secret.
-#[cfg_attr(test, derive(Debug, PartialEq, Eq, Clone))]
+#[derive(PartialEq, Eq)]
+#[cfg_attr(test, derive(Debug, Clone))]
 pub struct Bip39Secret {
     /// The entropy of the secret.
     entropy: Entropy,
@@ -152,7 +154,7 @@ pub struct Bip39Secret {
 }
 
 impl ShamirSecretSharing for Bip39Secret {
-    fn split<R: CryptoRng + RngCore>(self, n: u8, t: u8, rng: &mut R) -> Vec<Bip39Share> {
+    fn split<R: CryptoRng + RngCore>(&self, n: u8, t: u8, rng: &mut R) -> Vec<Bip39Share> {
         FieldArray::<gf256, ENTROPY_BYTES>::from(&self.entropy)
             .split(n, t, rng)
             .into_iter()
@@ -164,11 +166,11 @@ impl ShamirSecretSharing for Bip39Secret {
             .collect()
     }
 
-    fn reconstruct(shares: &[Bip39Share]) -> Self {
+    fn reconstruct<S: AsRef<Bip39Share>>(shares: &[S]) -> Self {
         let array_shares = shares
             .iter()
             .map(|share| {
-                let (id, secret) = share.as_coordinates();
+                let (id, secret) = share.as_ref().as_coordinates();
                 let array = From::from(&secret.entropy);
                 ShamirShare::new(*id, array)
             })
