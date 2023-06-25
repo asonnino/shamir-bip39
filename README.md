@@ -8,7 +8,7 @@ Apply [Shamir’s Secret Sharing](https://en.wikipedia.org/wiki/Shamir%27s_secre
 
 > This implementation has not been audited and is only suitable for experimental purposes.
 
-## Quick Start
+## Basic Usage
 
 The binary offers two primary functions: one for splitting a BIP-39 secret and another for reconstructing it from a threshold number of these shares. By default, this repository utilizes a valid English [BIP-39 dictionary](https://github.com/asonnino/shamir-bip39/blob/main/assets/bip39-en.txt). However, users have the flexibility to specify an external dictionary using the `--dictionary-path` option.
 
