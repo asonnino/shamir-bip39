@@ -48,7 +48,7 @@ impl Bip39Dictionary {
         let bits = bytes_to_bits(&index.to_be_bytes());
         Ok(bits[bits.len() - DICTIONARY_INDICES_BITS..]
             .try_into()
-            .expect("BTS should be always smaller than `usize` bit length"))
+            .expect("Slice size should match the dictionary index bit length"))
     }
 
     /// Get the word at a given index in the dictionary.
@@ -58,7 +58,7 @@ impl Bip39Dictionary {
         extended[length - DICTIONARY_INDICES_BITS..].copy_from_slice(bits);
         let bytes = bits_to_bytes(&extended)
             .try_into()
-            .expect("BTS should be always smaller than `usize` bit length");
+            .expect("Slice size should match the dictionary index byte length");
         let index = usize::from_be_bytes(bytes);
         self.words[index].clone()
     }
@@ -132,7 +132,7 @@ impl From<&Entropy> for Checksum {
         let bits = bytes_to_bits(digest.as_ref());
         let checksum = bits[..CHECKSUM_BITS]
             .try_into()
-            .expect("SHA-256 digest should be longer than CS");
+            .expect("Slice size should match the checksum bit length");
         Self(checksum)
     }
 }
@@ -207,10 +207,10 @@ impl Bip39Secret {
         Ok(Self {
             entropy: bits[..ENTROPY_BITS]
                 .try_into()
-                .expect("Valid mnemonic should be longer than ENT bits"),
-            checksum: bits[ENTROPY_BITS..]
-                .try_into()
-                .expect("Valid mnemonic should be ENT+CS bit long"),
+                .expect("Valid mnemonic should be longer than the entropy bit length"),
+            checksum: bits[ENTROPY_BITS..].try_into().expect(
+                "Valid mnemonic should match the sum of the entropy and checksum bit length",
+            ),
         })
     }
 
@@ -224,7 +224,9 @@ impl Bip39Secret {
             .collect::<Vec<_>>()
             .chunks(DICTIONARY_INDICES_BITS)
             .map(|chunk| {
-                let bits = chunk.try_into().expect("ENT+CS should be divisible by BTS");
+                let bits = chunk.try_into().expect(
+                    "The secret bit length should be divisible by the dictionary index bit length",
+                );
                 dictionary.word_from_bits(bits)
             })
             .collect::<Vec<_>>()
