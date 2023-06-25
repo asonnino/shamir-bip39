@@ -128,7 +128,7 @@ impl TryFrom<&[bool]> for Checksum {
 
 impl From<&Entropy> for Checksum {
     fn from(entropy: &Entropy) -> Self {
-        let digest = Sha256::digest(entropy.to_bytes());
+        let digest = Sha256::digest(&entropy.to_bytes());
         let bits = bytes_to_bits(digest.as_ref());
         let checksum = bits[..CHECKSUM_BITS]
             .try_into()
@@ -265,6 +265,8 @@ impl Bip39Share {
 
 #[cfg(test)]
 mod tests {
+    use std::fs::read_to_string;
+
     use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 
     use crate::{
@@ -272,10 +274,12 @@ mod tests {
         shamir::{self, Random, ShamirSecretSharing},
     };
 
+    /// Load the default bip-39 dictionary.
     fn test_dictionary() -> Bip39Dictionary {
         Bip39Dictionary::load("assets/bip39-en.txt").unwrap()
     }
 
+    /// A valid bip-39 mnemonic.
     fn test_mnemonic() -> &'static str {
         "motion domain employ liberty priority moral \
         boil property urge error chunk pave \
@@ -405,7 +409,7 @@ mod tests {
     }
 
     #[test]
-    fn integration() {
+    fn random_secrets() {
         let dictionary = test_dictionary();
 
         let mut rng = StdRng::seed_from_u64(0);
@@ -439,6 +443,22 @@ mod tests {
                     assert_eq!(reconstructed, loaded);
                 }
             }
+        }
+    }
+
+    #[test]
+    fn test_vectors() {
+        let dictionary = test_dictionary();
+
+        let filepath = "assets/test-vectors.txt";
+        let content = read_to_string(filepath).unwrap();
+        let mnemonics: Vec<_> = content.lines().map(Into::into).collect();
+
+        for mnemonic in mnemonics {
+            let secret = Bip39Secret::from_mnemonic(mnemonic, &dictionary).unwrap();
+            assert!(secret.is_valid().is_ok());
+            let exported = secret.to_mnemonic(&dictionary);
+            assert_eq!(mnemonic, exported);
         }
     }
 }

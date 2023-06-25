@@ -53,6 +53,12 @@ enum Operation {
         #[clap(short, long, value_name = "[STR]", value_delimiter = ',', num_args(1..))]
         shares: Vec<ShareString>,
     },
+    /// Ensure a string is a valid bip-39 mnemonic.
+    Check {
+        /// The bip-39 mnemonic to check.
+        #[clap(short, long, value_name = "STR")]
+        mnemonic: String,
+    },
 }
 
 #[derive(Clone)]
@@ -121,6 +127,13 @@ fn main() -> Result<()> {
 
             // Print the master secret to stdout.
             pretty_print_mnemonic("Master Secret", &secret.to_mnemonic(&dictionary));
+        }
+        Operation::Check { mnemonic } => {
+            // Ensure the mnemonic is valid with respect to the bip-39 standard.
+            match Bip39Secret::from_mnemonic(&mnemonic, &dictionary)?.is_valid() {
+                Ok(()) => println!("\n{}\n", "The mnemonic is valid".green()),
+                Err(e) => println!("\n{} {e}\n", "Invalid mnemonic:".red().bold()),
+            }
         }
     }
 
