@@ -70,6 +70,9 @@ Master Secret
 ------------------------------------------------------------------------
 ```
 
+## Related Projects
+See also [danielstreit/shamir-bip39](https://github.com/danielstreit/shamir-bip39) for an implementation in TypeScript.
+
 ## License
 
 This software is licensed as [Apache 2.0](LICENSE).
