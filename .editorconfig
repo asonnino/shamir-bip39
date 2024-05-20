@@ -22,7 +22,7 @@ indent_size = 2
 max_line_length = 150
 
 # Ignore paths
-[{.git/**/*,**/*.lock,LICENSE,README,assets/*}]
+[{.git/**/*,**/*.lock,LICENSE,README.md,assets/*}]
 charset = unset
 end_of_line = unset
 indent_size = unset
