@@ -4,13 +4,13 @@
 [advisories]
 version = 2
 ignore = [
-    "RUSTSEC-2023-0071",
-    # Difference 2.0.0 is unmaintained.
-    "RUSTSEC-2020-0095",
-    # Rust-yaml is not maintained, but is a dependency in many of our packages.
-    "RUSTSEC-2024-0320",
-    # Ignore the h2 advisory as we do not have control over most of the H2 usage.
-    "RUSTSEC-2024-0332",
+  "RUSTSEC-2023-0071",
+  # Difference 2.0.0 is unmaintained.
+  "RUSTSEC-2020-0095",
+  # Rust-yaml is not maintained, but is a dependency in many of our packages.
+  "RUSTSEC-2024-0320",
+  # Ignore the h2 advisory as we do not have control over most of the H2 usage.
+  "RUSTSEC-2024-0332",
 ]
 
 # This section is considered when running `cargo deny check licenses`
@@ -21,13 +21,7 @@ version = 2
 # List of explicitly allowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
 # [possible values: any SPDX 3.11 short identifier (+ optional exception)].
-allow = [
-    "Apache-2.0",
-    "BSD-3-Clause",
-    "LicenseRef-ring",
-    "MIT",
-    "Unicode-DFS-2016",
-]
+allow = ["Apache-2.0", "MIT"]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
 # canonical license text of a valid SPDX license file.
