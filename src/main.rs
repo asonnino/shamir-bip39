@@ -187,7 +187,7 @@ fn double_check_shares(secret: &Bip39Secret, shares: &[Bip39Share], t: usize) {
     for combination in (0..shares.len()).combinations(t) {
         let shares = combination
             .into_iter()
-            .map(|i| &shares[i as usize])
+            .map(|i| &shares[i])
             .collect::<Vec<_>>();
         let reconstructed = Bip39Secret::reconstruct(&shares);
         assert!(

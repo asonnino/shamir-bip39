@@ -21,7 +21,14 @@ version = 2
 # List of explicitly allowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
 # [possible values: any SPDX 3.11 short identifier (+ optional exception)].
-allow = ["Apache-2.0", "MIT"]
+allow = [
+  "Apache-2.0",
+  "MIT",
+  "CC0-1.0",
+  "BSD-3-Clause",
+  "Unicode-DFS-2016",
+  "MPL-2.0",
+]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
 # canonical license text of a valid SPDX license file.
@@ -46,10 +53,22 @@ ignore = true
 [bans]
 # Lint level for when multiple versions of the same crate are detected
 multiple-versions = "deny"
-skip = []
+skip = [
+  "block-buffer:0.9.0",
+  "convert_case:0.4.0",
+  "der:0.6.1",
+  "digest:0.9.0",
+  "hermit-abi:0.2.6",
+  "itertools:0.10.5",
+  "pem-rfc7468:0.6.0",
+  "pkcs8:0.9.0",
+  "sha2:0.9.9",
+  "spki:0.6.0",
+]
 skip-tree = [
   # Some crates manipulating prints to stdout depend on an older version of windows-sys
   { name = "windows-sys", depth = 3, version = "0.48" },
+  { name = "darling", depth = 3, version = "0.12.4" },
 ]
 
 # This section is considered when running `cargo deny check sources`.
