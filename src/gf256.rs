@@ -1,3 +1,6 @@
+// Copyright (c) Alberto Sonnino
+// SPDX-License-Identifier: Apache-2.0
+
 use gf256::gf256;
 use rand::{CryptoRng, Rng, RngCore};
 
@@ -48,7 +51,8 @@ impl ShamirSecretSharing for gf256 {
     }
 }
 
-/// NOTE: Chaos test is not implemented for GF(256) because the field is too small to prevent collisions.
+/// NOTE: No chaos test is implemented for the group GF(256) because the field is too small
+/// to prevent collisions.
 #[cfg(test)]
 mod test {
     use gf256::gf256;

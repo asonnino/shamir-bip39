@@ -1,3 +1,6 @@
+// Copyright (c) Alberto Sonnino
+// SPDX-License-Identifier: Apache-2.0
+
 mod bip39;
 mod gf256;
 mod shamir;
@@ -11,7 +14,9 @@ use color_eyre::owo_colors::OwoColorize;
 use eyre::{ensure, Result};
 use prettytable::{
     format::{FormatBuilder, LinePosition, LineSeparator},
-    Cell, Row, Table,
+    Cell,
+    Row,
+    Table,
 };
 use shamir::ShamirSecretSharing;
 

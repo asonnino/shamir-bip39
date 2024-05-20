@@ -1,3 +1,6 @@
+// Copyright (c) Alberto Sonnino
+// SPDX-License-Identifier: Apache-2.0
+
 use std::{
     array,
     collections::HashMap,
