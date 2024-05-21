@@ -1,6 +1,6 @@
 # BIP-39 Shamir Secret Sharing
 
-[![build status](https://img.shields.io/github/actions/workflow/status/asonnino/shamir-bip39/rust.yml?branch=main&logo=github&style=flat-square)](https://github.com/asonnino/shamir-bip39/actions)
+[![build status](https://img.shields.io/github/actions/workflow/status/asonnino/shamir-bip39/code.yml?branch=main&logo=github&style=flat-square)](https://github.com/asonnino/shamir-bip39/actions)
 [![rustc](https://img.shields.io/badge/rustc-1.69+-blue?style=flat-square&logo=rust)](https://www.rust-lang.org)
 [![license](https://img.shields.io/badge/license-Apache-blue.svg?style=flat-square)](LICENSE)
 
@@ -71,6 +71,7 @@ Master Secret
 ```
 
 ## Related Projects
+
 See also [danielstreit/shamir-bip39](https://github.com/danielstreit/shamir-bip39) for an implementation in TypeScript.
 
 ## License
