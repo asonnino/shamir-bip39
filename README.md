@@ -14,7 +14,7 @@ The binary offers two primary functions: one for splitting a BIP-39 secret and a
 
 ### Splitting
 
-The following command shares a bBBIPIPip-30 mnemonic into 3 shares such that it can be reconstructed from any 2 shares. The feature `double-check` actively asserts that the master secret can reconstructed from any 2 shares, which should always be the case.
+The following command shares a BIP-39 mnemonic into 3 shares such that it can be reconstructed from any 2 shares. The feature `double-check` actively asserts that the master secret can reconstructed from any 2 shares, which should always be the case.
 
 ```bash
 cargo run --features double-check split -t 2 -n 3 --secret "permit universe parent weapon amused modify essay borrow tobacco budget walnut lunch consider gallery ride amazing frog forget treat market chapter velvet useless topple"
