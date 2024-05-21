@@ -1,3 +1,6 @@
+// Copyright (c) Alberto Sonnino
+// SPDX-License-Identifier: Apache-2.0
+
 use std::{
     array,
     collections::HashMap,
@@ -188,7 +191,7 @@ pub mod test {
 
         let reconstructed = T::reconstruct(&shares[..t as usize]);
         assert_eq!(secret, reconstructed);
-        return secret;
+        secret
     }
 
     pub fn test_reconstruct_sparse<T>() -> T
@@ -202,9 +205,9 @@ pub mod test {
         let _share_3 = shares.pop().unwrap();
         let share_2 = shares.pop().unwrap();
         let share_1 = shares.pop().unwrap();
-        let reconstructed = T::reconstruct(&vec![share_1, share_2, share_4]);
+        let reconstructed = T::reconstruct(&[share_1, share_2, share_4]);
         assert_eq!(secret, reconstructed);
-        return secret;
+        secret
     }
 
     pub fn test_reconstruct_missing_shares<T>() -> (T, T)
@@ -220,7 +223,7 @@ pub mod test {
         let reconstructed = T::reconstruct(&shares[0..(t - 1) as usize]);
 
         assert_ne!(secret, reconstructed);
-        return (secret, reconstructed);
+        (secret, reconstructed)
     }
 
     pub fn chaos_test<T>()

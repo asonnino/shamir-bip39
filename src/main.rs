@@ -1,3 +1,6 @@
+// Copyright (c) Alberto Sonnino
+// SPDX-License-Identifier: Apache-2.0
+
 mod bip39;
 mod gf256;
 mod shamir;
@@ -5,17 +8,20 @@ mod utils;
 
 use std::str::FromStr;
 
-use bip39::{Bip39Dictionary, Bip39Secret};
 use clap::{command, Parser};
 use color_eyre::owo_colors::OwoColorize;
 use eyre::{ensure, Result};
 use prettytable::{
     format::{FormatBuilder, LinePosition, LineSeparator},
-    Cell, Row, Table,
+    Cell,
+    Row,
+    Table,
 };
-use shamir::ShamirSecretSharing;
 
-use crate::bip39::Bip39Share;
+use crate::{
+    bip39::{Bip39Dictionary, Bip39Secret, Bip39Share},
+    shamir::ShamirSecretSharing,
+};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -182,7 +188,7 @@ fn double_check_shares(secret: &Bip39Secret, shares: &[Bip39Share], t: usize) {
     for combination in (0..shares.len()).combinations(t) {
         let shares = combination
             .into_iter()
-            .map(|i| &shares[i as usize])
+            .map(|i| &shares[i])
             .collect::<Vec<_>>();
         let reconstructed = Bip39Secret::reconstruct(&shares);
         assert!(

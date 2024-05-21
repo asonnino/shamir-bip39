@@ -1,13 +1,17 @@
-use crate::{
-    shamir::{FieldArray, ShamirSecretSharing, ShamirShare},
-    utils::{bits_to_bytes, bytes_to_bits},
-};
+// Copyright (c) Alberto Sonnino
+// SPDX-License-Identifier: Apache-2.0
+
+use std::{array::TryFromSliceError, fmt::Debug, fs::read_to_string, path::Path};
 
 use eyre::{ensure, eyre, Result};
 use fastcrypto::hash::{HashFunction, Sha256};
 use gf256::gf256;
 use rand::{CryptoRng, RngCore};
-use std::{array::TryFromSliceError, fmt::Debug, fs::read_to_string, path::Path};
+
+use crate::{
+    shamir::{FieldArray, ShamirSecretSharing, ShamirShare},
+    utils::{bits_to_bytes, bytes_to_bits},
+};
 
 /// Parameters of the bip-39 specification (24 words variant).
 const DICTIONARY_INDICES_BITS: usize = 11;
@@ -128,7 +132,7 @@ impl TryFrom<&[bool]> for Checksum {
 
 impl From<&Entropy> for Checksum {
     fn from(entropy: &Entropy) -> Self {
-        let digest = Sha256::digest(&entropy.to_bytes());
+        let digest = Sha256::digest(entropy.to_bytes());
         let bits = bytes_to_bits(digest.as_ref());
         let checksum = bits[..CHECKSUM_BITS]
             .try_into()

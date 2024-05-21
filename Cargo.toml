@@ -10,35 +10,38 @@ homepage = "https://github.com/asonnino/shamir-bip39"
 repository = "https://github.com/asonnino/shamir-bip39"
 license-file = "LICENSE"
 keywords = [
-    "shamir", 
-    "secret-sharing",
-    "bip39", 
-    "mnemonic", 
-    "wallet", 
-    "bitcoin", 
-    "ethereum", 
-    "crypto", 
-    "cryptocurrency", 
-    "blockchain", 
-    "recovery"
+  "shamir",
+  "secret-sharing",
+  "bip39",
+  "mnemonic",
+  "wallet",
+  "bitcoin",
+  "ethereum",
+  "crypto",
+  "cryptocurrency",
+  "blockchain",
+  "recovery",
 ]
-categories = ["command-line-utilities", "cryptography", "cryptography::cryptocurrencies"]
+categories = [
+  "command-line-utilities",
+  "cryptography",
+  "cryptography::cryptocurrencies",
+]
 publish = false
 
 [badges]
 maintenance = { status = "experimental" }
 
 [dependencies]
-rand = "0.8.5"
-eyre = "0.6.8"
-color-eyre = "0.6.2"
-fastcrypto = "0.1.5"
+clap = { version = "4.5.4", features = ["derive"] }
+color-eyre = "0.6.3"
+colored = "2.1.0"
+eyre = "0.6.12"
+fastcrypto = "0.1.8"
 gf256 = "0.3.0"
-clap = { version = "4.3.3", features = ["derive"] }
-colored = "2.0.0"
+itertools = { version = "0.13.0", optional = true }
 prettytable-rs = "0.10.0"
-itertools = { version = "0.11.0", optional = true }
+rand = "0.8.5"
 
 [features]
 double-check = ["itertools"]
-
