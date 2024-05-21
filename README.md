@@ -1,7 +1,7 @@
 # BIP-39 Shamir Secret Sharing
 
 [![build status](https://img.shields.io/github/actions/workflow/status/asonnino/shamir-bip39/code.yml?branch=main&logo=github&style=flat-square)](https://github.com/asonnino/shamir-bip39/actions)
-[![rustc](https://img.shields.io/badge/rustc-1.69+-blue?style=flat-square&logo=rust)](https://www.rust-lang.org)
+[![rustc](https://img.shields.io/badge/rustc-1.78+-blue?style=flat-square&logo=rust)](https://www.rust-lang.org)
 [![license](https://img.shields.io/badge/license-Apache-blue.svg?style=flat-square)](LICENSE)
 
 Apply [Shamir’s Secret Sharing](https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing) to [BIP-39 mnemonics](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki), in accordance with the specifications outlined in [EIP-3450](https://eips.ethereum.org/EIPS/eip-3450). Each individual share constitutes a valid BIP-39 mnemonic, allowing them to serve as decoy wallets if needed. Similarly, any secret reconstructed using fewer than the required threshold number of shares can also be utilized in the same manner. This implementation makes effective use of the [gf256](https://github.com/geky/gf256) library to perform operations on Galois fields.
@@ -14,7 +14,7 @@ The binary offers two primary functions: one for splitting a BIP-39 secret and a
 
 ### Splitting
 
-The following command shares a bBBIPIPip-30 mnemonic into 3 shares such that it can be reconstructed from any 2 shares. The feature `double-check` actively asserts that the master secret can reconstructed from any 2 shares, which should always be the case.
+The following command shares a BIP-39 mnemonic into 3 shares such that it can be reconstructed from any 2 shares. The feature `double-check` actively asserts that the master secret can reconstructed from any 2 shares, which should always be the case.
 
 ```bash
 cargo run --features double-check split -t 2 -n 3 --secret "permit universe parent weapon amused modify essay borrow tobacco budget walnut lunch consider gallery ride amazing frog forget treat market chapter velvet useless topple"
