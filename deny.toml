@@ -54,20 +54,21 @@ ignore = true
 # Lint level for when multiple versions of the same crate are detected
 multiple-versions = "deny"
 skip = [
-  "block-buffer:0.9.0",
-  "convert_case:0.4.0",
-  "der:0.6.1",
-  "digest:0.9.0",
-  "hermit-abi:0.2.6",
-  "itertools:0.10.5",
-  "pem-rfc7468:0.6.0",
-  "pkcs8:0.9.0",
-  "sha2:0.9.9",
-  "spki:0.6.0",
+  "block-buffer:0.9.0", #  gf256 v0.3.0
+  "convert_case:0.4.0", #  gf256 v0.3.0
+  "der:0.6.1",          #  gf256 v0.3.0
+  "digest:0.9.0",       #  gf256 v0.3.0
+  "hermit-abi:0.2.6",   #  gf256 v0.3.0
+  "itertools:0.10.5",   #  gf256 v0.3.0
+  "pem-rfc7468:0.6.0",  #  gf256 v0.3.0
+  "pkcs8:0.9.0",        #  gf256 v0.3.0
+  "sha2:0.9.9",         #  gf256 v0.3.0
+  "spki:0.6.0",         #  gf256 v0.3.0
 ]
 skip-tree = [
   # Some crates manipulating prints to stdout depend on an older version of windows-sys
   { name = "windows-sys", depth = 3, version = "0.48" },
+  # The crate gf256 v0.3.0 depend on an older version of darling
   { name = "darling", depth = 3, version = "0.12.4" },
 ]
 
