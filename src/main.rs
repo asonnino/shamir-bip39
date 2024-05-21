@@ -8,7 +8,6 @@ mod utils;
 
 use std::str::FromStr;
 
-use bip39::{Bip39Dictionary, Bip39Secret};
 use clap::{command, Parser};
 use color_eyre::owo_colors::OwoColorize;
 use eyre::{ensure, Result};
@@ -18,9 +17,11 @@ use prettytable::{
     Row,
     Table,
 };
-use shamir::ShamirSecretSharing;
 
-use crate::bip39::Bip39Share;
+use crate::{
+    bip39::{Bip39Dictionary, Bip39Secret, Bip39Share},
+    shamir::ShamirSecretSharing,
+};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
