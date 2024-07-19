@@ -236,6 +236,10 @@ impl Bip39Secret {
             .collect::<Vec<_>>()
             .join(" ")
     }
+    /// Generate the seed phrase (mnemonic) from the secret.
+    pub fn to_seed_phrase(&self, dictionary: &Bip39Dictionary) -> String {
+        self.to_mnemonic(dictionary)
+    }
 }
 
 #[cfg(test)]

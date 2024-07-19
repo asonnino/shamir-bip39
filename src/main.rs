@@ -7,6 +7,8 @@ mod shamir;
 mod utils;
 
 use std::str::FromStr;
+use std::fs::File;
+use std::io::{self, Write};
 
 use clap::{command, Parser};
 use color_eyre::owo_colors::OwoColorize;
@@ -114,7 +116,7 @@ fn main() -> Result<()> {
 
             // Double-check that the secret can be reconstructed from the shares.
             #[cfg(feature = "double-check")]
-            double_check_shares(&secret, &shares, t as usize);
+            double_check_shares(&secret, &shares, t as usize, &dictionary)?;
         }
         Operation::Reconstruct { shares } => {
             // Generate a bip-39 share from each input mnemonic.
@@ -178,23 +180,51 @@ fn pretty_print_mnemonic(heading: &str, mnemonic: &str) {
 /// Double-check that the secret can be reconstructed from any `t` shares.
 /// Panic if the secret cannot be reconstructed.
 #[cfg(feature = "double-check")]
-fn double_check_shares(secret: &Bip39Secret, shares: &[Bip39Share], t: usize) {
+fn double_check_shares(secret: &Bip39Secret, shares: &[Bip39Share], t: usize, dictionary: &Bip39Dictionary) -> io::Result<()> {
     use itertools::Itertools;
 
-    print!("Double-checking secret can be reconstructed from any {t} shares...");
+    // Open a file for writing the output
+    let mut file = File::create("reconstructed_seed_phrases.txt")?;
+
+    println!("\nDouble-checking secret can be reconstructed from any {t} shares...\n");
+
+    // Write the original seed phrase to the file
+    let original_seed_phrase = secret.to_seed_phrase(dictionary);
+    writeln!(file, "Original seed phrase:\n\"{}\"\n", original_seed_phrase)?;
+
     for share in shares {
         assert!(share.is_valid().is_ok(), "The share is invalid");
     }
-    for combination in (0..shares.len()).combinations(t) {
-        let shares = combination
+
+    for (index, combination) in (0..shares.len()).combinations(t).enumerate() {
+        // Adjust share indices to start from 1 instead of 0
+        let adjusted_combination: Vec<_> = combination.iter().map(|&i| i + 1).collect();
+
+        // Print the combination index
+        println!("Testing combination {}: {:?}", index + 1, adjusted_combination);
+
+        let shares_subset = combination
             .into_iter()
             .map(|i| &shares[i])
             .collect::<Vec<_>>();
-        let reconstructed = Bip39Secret::reconstruct(&shares);
+
+        let reconstructed = Bip39Secret::reconstruct(&shares_subset);
         assert!(
             secret == &reconstructed,
             "The secret could not be reconstructed from the shares"
         );
+
+        // Write the reconstructed seed phrase to the file
+        let reconstructed_seed_phrase = reconstructed.to_seed_phrase(dictionary);
+        writeln!(file, "Reconstructed seed phrase from combination {}:", index + 1)?;
+        for &i in &adjusted_combination {
+            writeln!(file, "  Share {}: \"{}\"", i, shares[i - 1].to_mnemonic(dictionary))?; // Adjust index back for accessing shares
+        }
+        writeln!(file, "  Reconstructed seed phrase:\n    \"{}\"\n", reconstructed_seed_phrase)?;
     }
-    println!(" [{}]\n", "ok".green().bold());
+
+    println!("\nWriting results to file: reconstructed_seed_phrases.txt\n");
+    println!("[{}]\n", "ok".green().bold());
+
+    Ok(())
 }
