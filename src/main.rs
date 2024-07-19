@@ -6,18 +6,16 @@ mod gf256;
 mod shamir;
 mod utils;
 
-use std::str::FromStr;
 use std::fs::File;
 use std::io::{self, Write};
+use std::str::FromStr;
 
 use clap::{command, Parser};
 use color_eyre::owo_colors::OwoColorize;
 use eyre::{ensure, Result};
 use prettytable::{
     format::{FormatBuilder, LinePosition, LineSeparator},
-    Cell,
-    Row,
-    Table,
+    Cell, Row, Table,
 };
 
 use crate::{
@@ -180,7 +178,12 @@ fn pretty_print_mnemonic(heading: &str, mnemonic: &str) {
 /// Double-check that the secret can be reconstructed from any `t` shares.
 /// Panic if the secret cannot be reconstructed.
 #[cfg(feature = "double-check")]
-fn double_check_shares(secret: &Bip39Secret, shares: &[Bip39Share], t: usize, dictionary: &Bip39Dictionary) -> io::Result<()> {
+fn double_check_shares(
+    secret: &Bip39Secret,
+    shares: &[Bip39Share],
+    t: usize,
+    dictionary: &Bip39Dictionary,
+) -> io::Result<()> {
     use itertools::Itertools;
 
     // Open a file for writing the output
@@ -190,7 +193,11 @@ fn double_check_shares(secret: &Bip39Secret, shares: &[Bip39Share], t: usize, di
 
     // Write the original seed phrase to the file
     let original_seed_phrase = secret.to_seed_phrase(dictionary);
-    writeln!(file, "Original seed phrase:\n\"{}\"\n", original_seed_phrase)?;
+    writeln!(
+        file,
+        "Original seed phrase:\n\"{}\"\n",
+        original_seed_phrase
+    )?;
 
     for share in shares {
         assert!(share.is_valid().is_ok(), "The share is invalid");
@@ -201,7 +208,11 @@ fn double_check_shares(secret: &Bip39Secret, shares: &[Bip39Share], t: usize, di
         let adjusted_combination: Vec<_> = combination.iter().map(|&i| i + 1).collect();
 
         // Print the combination index
-        println!("Testing combination {}: {:?}", index + 1, adjusted_combination);
+        println!(
+            "Testing combination {}: {:?}",
+            index + 1,
+            adjusted_combination
+        );
 
         let shares_subset = combination
             .into_iter()
@@ -216,11 +227,24 @@ fn double_check_shares(secret: &Bip39Secret, shares: &[Bip39Share], t: usize, di
 
         // Write the reconstructed seed phrase to the file
         let reconstructed_seed_phrase = reconstructed.to_seed_phrase(dictionary);
-        writeln!(file, "Reconstructed seed phrase from combination {}:", index + 1)?;
+        writeln!(
+            file,
+            "Reconstructed seed phrase from combination {}:",
+            index + 1
+        )?;
         for &i in &adjusted_combination {
-            writeln!(file, "  Share {}: \"{}\"", i, shares[i - 1].to_mnemonic(dictionary))?; // Adjust index back for accessing shares
+            writeln!(
+                file,
+                "  Share {}: \"{}\"",
+                i,
+                shares[i - 1].to_mnemonic(dictionary)
+            )?; // Adjust index back for accessing shares
         }
-        writeln!(file, "  Reconstructed seed phrase:\n    \"{}\"\n", reconstructed_seed_phrase)?;
+        writeln!(
+            file,
+            "  Reconstructed seed phrase:\n    \"{}\"\n",
+            reconstructed_seed_phrase
+        )?;
     }
 
     println!("\nWriting results to file: reconstructed_seed_phrases.txt\n");
