@@ -192,7 +192,7 @@ fn double_check_shares(
     println!("\nDouble-checking secret can be reconstructed from any {t} shares...\n");
 
     // Write the original seed phrase to the file
-    let original_seed_phrase = secret.to_seed_phrase(dictionary);
+    let original_seed_phrase = secret.to_mnemonic(dictionary);
     writeln!(
         file,
         "Original seed phrase:\n\"{}\"\n",
@@ -226,7 +226,7 @@ fn double_check_shares(
         );
 
         // Write the reconstructed seed phrase to the file
-        let reconstructed_seed_phrase = reconstructed.to_seed_phrase(dictionary);
+        let reconstructed_seed_phrase = reconstructed.to_mnemonic(dictionary);
         writeln!(
             file,
             "Reconstructed seed phrase from combination {}:",
