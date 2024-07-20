@@ -6,16 +6,20 @@ mod gf256;
 mod shamir;
 mod utils;
 
-use std::fs::File;
-use std::io::{self, Write};
-use std::str::FromStr;
+use std::{
+    fs::File,
+    io::{self, Write},
+    str::FromStr,
+};
 
 use clap::{command, Parser};
 use color_eyre::owo_colors::OwoColorize;
 use eyre::{ensure, Result};
 use prettytable::{
     format::{FormatBuilder, LinePosition, LineSeparator},
-    Cell, Row, Table,
+    Cell,
+    Row,
+    Table,
 };
 
 use crate::{
