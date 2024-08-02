@@ -6,11 +6,7 @@ mod gf256;
 mod shamir;
 mod utils;
 
-use std::{
-    fs::File,
-    io::{self, Write},
-    str::FromStr,
-};
+use std::str::FromStr;
 
 use clap::{command, Parser};
 use color_eyre::owo_colors::OwoColorize;
@@ -187,7 +183,9 @@ fn double_check_shares(
     shares: &[Bip39Share],
     t: usize,
     dictionary: &Bip39Dictionary,
-) -> io::Result<()> {
+) -> std::io::Result<()> {
+    use std::{fs::File, io::Write};
+
     use itertools::Itertools;
 
     // Open a file for writing the output

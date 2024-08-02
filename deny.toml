@@ -3,15 +3,7 @@
 # https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
 [advisories]
 version = 2
-ignore = [
-  "RUSTSEC-2023-0071",
-  # Difference 2.0.0 is unmaintained.
-  "RUSTSEC-2020-0095",
-  # Rust-yaml is not maintained, but is a dependency in many of our packages.
-  "RUSTSEC-2024-0320",
-  # Ignore the h2 advisory as we do not have control over most of the H2 usage.
-  "RUSTSEC-2024-0332",
-]
+ignore = ["RUSTSEC-2023-0071"]
 
 # This section is considered when running `cargo deny check licenses`
 # More documentation for the licenses section can be found here:
@@ -28,6 +20,7 @@ allow = [
   "BSD-3-Clause",
   "Unicode-DFS-2016",
   "MPL-2.0",
+  "BSD-2-Clause",
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
@@ -58,12 +51,12 @@ skip = [
   "convert_case:0.4.0", #  gf256 v0.3.0
   "der:0.6.1",          #  gf256 v0.3.0
   "digest:0.9.0",       #  gf256 v0.3.0
-  "hermit-abi:0.2.6",   #  gf256 v0.3.0
   "itertools:0.10.5",   #  gf256 v0.3.0
   "pem-rfc7468:0.6.0",  #  gf256 v0.3.0
   "pkcs8:0.9.0",        #  gf256 v0.3.0
   "sha2:0.9.9",         #  gf256 v0.3.0
   "spki:0.6.0",         #  gf256 v0.3.0
+  "zerocopy:0.6.6",     #  ark-ec v0.4.2
 ]
 skip-tree = [
   # Some crates manipulating prints to stdout depend on an older version of windows-sys
@@ -86,4 +79,4 @@ allow-git = []
 
 [sources.allow-org]
 # 1 or more github.com organizations to allow git sources for
-github = ["MystenLabs"]
+github = []
