@@ -60,7 +60,7 @@ skip = [
 ]
 skip-tree = [
   # Some crates manipulating prints to stdout depend on an older version of windows-sys
-  { name = "windows-sys", depth = 3, version = "0.48" },
+  { name = "windows-sys", depth = 3, version = "0.52" },
   # The crate gf256 v0.3.0 depend on an older version of darling
   { name = "darling", depth = 3, version = "0.12.4" },
 ]
