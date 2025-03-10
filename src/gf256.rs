@@ -14,7 +14,7 @@ impl Zero for gf256 {
 
 impl Random for gf256 {
     fn random<R: CryptoRng + RngCore>(rng: &mut R) -> Self {
-        gf256(rng.gen_range(1..=255))
+        gf256(rng.random_range(1..=255))
     }
 }
 
