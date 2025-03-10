@@ -103,7 +103,7 @@ fn main() -> Result<()> {
             // Ensure the secret is valid with respect to the bip-39 standard.
             secret.is_valid()?;
             // Split the secret into the specified number of shares.
-            let shares = secret.split(n, t, &mut rand::thread_rng());
+            let shares = secret.split(n, t, &mut rand::rng());
 
             // Print the shares to stdout.
             for (i, share) in shares.iter().enumerate() {

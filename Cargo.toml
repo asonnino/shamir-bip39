@@ -33,11 +33,11 @@ publish = false
 maintenance = { status = "experimental" }
 
 [dependencies]
-clap = { version = "4.5.4", features = ["derive"] }
+clap = { version = "4.5.31", features = ["derive"] }
 color-eyre = "0.6.3"
-colored = "2.1.0"
+colored = "3.0.0"
 eyre = "0.6.12"
-fastcrypto = "0.1.8"
+fastcrypto = "0.1.9"
 gf256 = "0.3.0"
 itertools = { version = "0.14.0", optional = true }
 prettytable-rs = "0.10.0"

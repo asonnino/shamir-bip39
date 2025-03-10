@@ -86,7 +86,7 @@ impl Entropy {
     pub fn random<R: CryptoRng + RngCore>(rng: &mut R) -> Self {
         use rand::Rng;
 
-        Self(std::array::from_fn(|_| rng.gen()))
+        Self(std::array::from_fn(|_| rng.random()))
     }
 }
 

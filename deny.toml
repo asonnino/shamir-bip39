@@ -3,7 +3,7 @@
 # https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
 [advisories]
 version = 2
-ignore = ["RUSTSEC-2023-0071", "RUSTSEC-2024-0388"]
+ignore = ["RUSTSEC-2023-0071", "RUSTSEC-2024-0388", "RUSTSEC-2024-0436"]
 
 # This section is considered when running `cargo deny check licenses`
 # More documentation for the licenses section can be found here:
@@ -21,6 +21,7 @@ allow = [
   "MPL-2.0",
   "BSD-2-Clause",
   "Unicode-3.0",
+  "Unicode-DFS-2016",
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
