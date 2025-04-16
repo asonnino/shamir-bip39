@@ -70,6 +70,17 @@ Master Secret
 ------------------------------------------------------------------------
 ```
 
+## Boot Image
+
+You can generate an optimized boot image for x86 using the nix package manager:
+```bash
+nix build ".#iso"
+```
+And copy the resulting `result/iso/nixos-25.05.*-x86_64-linux.iso` to a USB drive.
+
+This image uses a hardened linux kernel, is minimized (no network, no harddisk mounting, no unecesarry services, ... ) and clears memory after usage and reboot to minimize data leakage.
+
+
 ## Related Projects
 
 See also [danielstreit/shamir-bip39](https://github.com/danielstreit/shamir-bip39) for an implementation in TypeScript.
