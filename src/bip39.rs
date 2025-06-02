@@ -458,7 +458,7 @@ mod tests {
 
         let filepath = "assets/test-vectors.txt";
         let content = read_to_string(filepath).unwrap();
-        let mnemonics: Vec<_> = content.lines().map(Into::into).collect();
+        let mnemonics: Vec<_> = content.lines().collect();
 
         for mnemonic in mnemonics {
             let secret = Bip39Secret::from_mnemonic(mnemonic, &dictionary).unwrap();
