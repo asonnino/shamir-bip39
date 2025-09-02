@@ -41,7 +41,7 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Detect Changes
         uses: dorny/paths-filter@v3.0.2
         id: diff
@@ -59,8 +59,8 @@ jobs:
     needs: diff
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: EmbarkStudios/cargo-deny-action@v2.0.12
+      - uses: actions/checkout@v5
+      - uses: EmbarkStudios/cargo-deny-action@v2.0.13
         with:
           # do not check advisories on PRs to prevent sudden failure due to new announcement
           command: check bans licenses sources
@@ -70,15 +70,15 @@ jobs:
     needs: diff
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: EmbarkStudios/cargo-deny-action@v2.0.12
+      - uses: actions/checkout@v5
+      - uses: EmbarkStudios/cargo-deny-action@v2.0.13
 
   test:
     name: Test Rust code
     needs: diff
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: Swatinem/rust-cache@v2.8.0
         with:
           save-if: ${{ github.ref == 'refs/heads/main' && 'true' || 'false' }}
@@ -90,7 +90,7 @@ jobs:
     needs: diff
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: Swatinem/rust-cache@v2.8.0
         with:
           save-if: ${{ github.ref == 'refs/heads/main' && 'true' || 'false' }}
@@ -114,7 +114,7 @@ jobs:
     needs: diff
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: Swatinem/rust-cache@v2.8.0
         with:
           save-if: ${{ github.ref == 'refs/heads/main' && 'true' || 'false' }}
