@@ -4,6 +4,7 @@
 use std::{array::TryFromSliceError, fmt::Debug, fs::read_to_string, path::Path};
 
 use eyre::{ensure, eyre, Result};
+use zeroize::ZeroizeOnDrop;
 use fastcrypto::hash::{HashFunction, Sha256};
 use gf256::gf256;
 use rand::{CryptoRng, RngCore};
@@ -69,7 +70,7 @@ impl Bip39Dictionary {
 }
 
 /// The entropy of a bip-39 secret.
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, ZeroizeOnDrop)]
 #[cfg_attr(test, derive(Debug, Clone))]
 struct Entropy([bool; ENTROPY_BITS]);
 
@@ -118,7 +119,7 @@ where
 }
 
 /// The checksum of a bip-39 secret.
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, ZeroizeOnDrop)]
 #[cfg_attr(test, derive(Clone, Debug))]
 struct Checksum([bool; CHECKSUM_BITS]);
 
@@ -148,7 +149,7 @@ impl Checksum {
 }
 
 /// A bip-39 secret.
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, ZeroizeOnDrop)]
 #[cfg_attr(test, derive(Debug, Clone))]
 pub struct Bip39Secret {
     /// The entropy of the secret.
