@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 mod bip39;
-mod exploit_tests;
 mod gf256;
 mod shamir;
 mod utils;
@@ -79,11 +78,7 @@ impl FromStr for ShareString {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut parts = s.split(' ');
-        // Use parse on the empty string to generate a ParseIntError instead of panicking.
-        let index = parts
-            .next()
-            .unwrap_or("")
-            .parse()?;
+        let index = parts.next().unwrap().parse()?;
         let secret = parts.collect::<Vec<_>>().join(" ");
         Ok(Self { index, secret })
     }
@@ -99,10 +94,7 @@ fn main() -> Result<()> {
     match args.operation {
         Operation::Split { secret, n, t } => {
             ensure!(n > 0, "There must be at least one share");
-            ensure!(
-                t > 1,
-                "The threshold must be at least two — a threshold of 1 leaks the secret in every share"
-            );
+            ensure!(t > 1, "The threshold must be at least two — a threshold of 1 leaks the secret in every share");
             ensure!(t <= n, "The threshold must be lower than the total shares");
 
             // Generate a bip-39 secret from the input mnemonic.
