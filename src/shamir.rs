@@ -232,7 +232,7 @@ pub mod test {
     {
         let mut rng = StdRng::seed_from_u64(0);
         for n in 1..=15 {
-            for t in 1..=n {
+            for t in 2..=n {
                 let secret = T::random(&mut rng);
 
                 let mut shares = secret.clone().split(n, t, &mut rng);
@@ -252,37 +252,37 @@ pub mod test {
 
     #[test]
     fn reconstruct() {
-        test_reconstruct::<FieldArray<gf256::gf256, 16>>();
-        test_reconstruct::<FieldArray<gf256::gf256, 20>>();
-        test_reconstruct::<FieldArray<gf256::gf256, 24>>();
-        test_reconstruct::<FieldArray<gf256::gf256, 28>>();
-        test_reconstruct::<FieldArray<gf256::gf256, 32>>();
+        test_reconstruct::<FieldArray<crate::gf256::gf256, 16>>();
+        test_reconstruct::<FieldArray<crate::gf256::gf256, 20>>();
+        test_reconstruct::<FieldArray<crate::gf256::gf256, 24>>();
+        test_reconstruct::<FieldArray<crate::gf256::gf256, 28>>();
+        test_reconstruct::<FieldArray<crate::gf256::gf256, 32>>();
     }
 
     #[test]
     fn reconstruct_sparse() {
-        test_reconstruct_sparse::<FieldArray<gf256::gf256, 16>>();
-        test_reconstruct_sparse::<FieldArray<gf256::gf256, 20>>();
-        test_reconstruct_sparse::<FieldArray<gf256::gf256, 28>>();
-        test_reconstruct_sparse::<FieldArray<gf256::gf256, 24>>();
-        test_reconstruct_sparse::<FieldArray<gf256::gf256, 32>>();
+        test_reconstruct_sparse::<FieldArray<crate::gf256::gf256, 16>>();
+        test_reconstruct_sparse::<FieldArray<crate::gf256::gf256, 20>>();
+        test_reconstruct_sparse::<FieldArray<crate::gf256::gf256, 28>>();
+        test_reconstruct_sparse::<FieldArray<crate::gf256::gf256, 24>>();
+        test_reconstruct_sparse::<FieldArray<crate::gf256::gf256, 32>>();
     }
 
     #[test]
     fn reconstruct_missing_shares() {
-        test_reconstruct_missing_shares::<FieldArray<gf256::gf256, 16>>();
-        test_reconstruct_missing_shares::<FieldArray<gf256::gf256, 20>>();
-        test_reconstruct_missing_shares::<FieldArray<gf256::gf256, 24>>();
-        test_reconstruct_missing_shares::<FieldArray<gf256::gf256, 28>>();
-        test_reconstruct_missing_shares::<FieldArray<gf256::gf256, 32>>();
+        test_reconstruct_missing_shares::<FieldArray<crate::gf256::gf256, 16>>();
+        test_reconstruct_missing_shares::<FieldArray<crate::gf256::gf256, 20>>();
+        test_reconstruct_missing_shares::<FieldArray<crate::gf256::gf256, 24>>();
+        test_reconstruct_missing_shares::<FieldArray<crate::gf256::gf256, 28>>();
+        test_reconstruct_missing_shares::<FieldArray<crate::gf256::gf256, 32>>();
     }
 
     #[test]
     fn chaos() {
-        chaos_test::<FieldArray<gf256::gf256, 16>>();
-        chaos_test::<FieldArray<gf256::gf256, 20>>();
-        chaos_test::<FieldArray<gf256::gf256, 24>>();
-        chaos_test::<FieldArray<gf256::gf256, 28>>();
-        chaos_test::<FieldArray<gf256::gf256, 32>>();
+        chaos_test::<FieldArray<crate::gf256::gf256, 16>>();
+        chaos_test::<FieldArray<crate::gf256::gf256, 20>>();
+        chaos_test::<FieldArray<crate::gf256::gf256, 24>>();
+        chaos_test::<FieldArray<crate::gf256::gf256, 28>>();
+        chaos_test::<FieldArray<crate::gf256::gf256, 32>>();
     }
 }

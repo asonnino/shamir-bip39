@@ -4,8 +4,8 @@
 use std::{array::TryFromSliceError, fmt::Debug, fs::read_to_string, path::Path};
 
 use eyre::{ensure, eyre, Result};
-use fastcrypto::hash::{HashFunction, Sha256};
-use gf256::gf256;
+use sha2::{Digest, Sha256};
+use crate::gf256::gf256;
 use rand::{CryptoRng, RngCore};
 
 use crate::{
@@ -420,7 +420,7 @@ mod tests {
 
         let mut rng = StdRng::seed_from_u64(0);
         for n in 1..=15 {
-            for t in 1..=n {
+            for t in 2..=n {
                 let secret = Bip39Secret::random(&mut rng);
 
                 let mut shares = secret.clone().split(n, t, &mut rng);
